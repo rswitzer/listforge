@@ -48,6 +48,16 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
 
 ## Non-Obvious Conventions
 
+### Test-Driven Development is mandatory
+Every production change follows Red → Green → Refactor: write the failing test first, make it pass with the smallest change, then refactor. The `.claude/hooks/check-tdd.sh` PreToolUse hook **blocks** writes to production files when no matching test file exists on disk, and the `tdd-reviewer` agent catches drift at PR time. The `new-usecase`, `new-aggregate`, `new-endpoint`, and `feature-tdd` skills scaffold the failing test(s) first by design.
+
+Tests must also be **green at end-of-turn**: the `.claude/hooks/run-affected-tests.sh` Stop hook runs `pnpm typecheck` + `vitest --changed` on touched frontend files, `playwright test` when any frontend or `tests-e2e/` file is touched, and `dotnet test` on touched backend test projects. Blocks the turn from ending if any fail. Set `LISTFORGE_SKIP_STOP_TESTS=1` to bypass for doc-only or planning sessions.
+
+Test projects live under `/tests/ListForge.{Domain,Application,Infrastructure,API}.Tests`. Frontend component tests are co-located as `ComponentName.test.tsx`. End-to-end Playwright specs live under `tests-e2e/` and run in real Chromium (the Playwright config auto-starts the Vite dev server and the .NET API). Each user-facing **page** under `frontend/src/pages/` is required by `check-tdd.sh` to have both a sibling Vitest test and a matching `tests-e2e/<name>.spec.ts`. Frontend test infrastructure (custom `render`, jest-dom setup) lives under `frontend/src/test/`; canonical patterns are in `docs/testing.md`. Locked framework choices: xUnit + FluentAssertions + NSubstitute for backend, Vitest + React Testing Library for frontend components, Playwright for end-to-end. See `architecture.md §Testing Strategy` for the full contract (test types per layer, Testcontainers for repos, no vendor-SDK mocking, coverage expectations, naming).
+
+### Live verification with the Playwright MCP
+The repo ships an `.mcp.json` that registers the official `@playwright/mcp` server. After you approve it on first use (`claude mcp list`), the assistant can drive a real Chromium browser during a task — navigate routes, click controls, take screenshots, inspect the DOM. Use it to iterate on a feature until it visibly works, not just until tests pass. The dev server can be started in the background with `pnpm --dir frontend dev` and torn down at end-of-task.
+
 ### Vendor abstraction is load-bearing
 Every external provider (Supabase, Claude, Etsy) must be hidden behind a Domain-level interface with the implementation in Infrastructure. Do not pass provider SDK clients through application logic, and do not let raw provider payloads reach domain state — normalize into application DTOs first. Switching providers should only touch Infrastructure.
 
@@ -87,4 +97,28 @@ From `architecture.md` §"Suggested Initial Build Order": scaffolding → config
 
 ## Commands
 
-No build, lint, or test commands exist yet — the solution hasn't been scaffolded. Update this section once `/src` and `/frontend` are created.
+The solution is scaffolded. All commands run from the repo root unless noted.
+
+### Toolchain
+- .NET 9 SDK (`net9.0`). The user-space install lives at `~/.dotnet`.
+- Node 20 LTS via nvm (`~/.nvm`). pnpm via Corepack.
+- A sourceable env file is provided at `/tmp/listforge-env.sh`. Source it before running build/test/run commands so that `dotnet 9.0.x`, `node 20`, and `pnpm` are on PATH:
+  ```
+  source /tmp/listforge-env.sh
+  ```
+
+### Backend
+- `dotnet build ListForge.sln` — restore + compile all 9 projects.
+- `dotnet test ListForge.sln` — run all xUnit projects. The canary `HelloEndpointTests` lives in `tests/ListForge.API.Tests/`.
+- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Endpoints: `GET /api/health`, `GET /api/hello`.
+
+### Frontend
+- `cd frontend && pnpm install` — install dependencies.
+- `pnpm test` (in `frontend/`) — Vitest single-run with React Testing Library + jsdom.
+- `pnpm test:watch` — watch mode.
+- `pnpm typecheck` — `tsc --noEmit`.
+- `pnpm dev` — Vite dev server on `http://localhost:5173`. `/api/*` is proxied to the backend on port 5050.
+- `pnpm build` — production build to `frontend/dist/`.
+
+### Hooks
+The PreToolUse hooks at `.claude/hooks/check-layer-imports.sh` and `.claude/hooks/check-tdd.sh` fire automatically on Write/Edit. They block edits that violate architectural boundaries or skip the Red test.

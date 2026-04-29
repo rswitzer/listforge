@@ -591,6 +591,37 @@ Because the product targets non-technical users:
 - Warnings should be calm and clear.
 - Every important action should be reversible or confirmed when risk is involved.
 
+## Frontend Testing
+
+### TDD applies to the frontend too
+Every React component with behavior ships with a failing test first, then the component. See `architecture.md §Testing Strategy` for the overall rule; this section notes the UI-specific guidance.
+
+### Test framework
+Vitest + React Testing Library + `@testing-library/user-event`. Tests are co-located next to the component as `ComponentName.test.tsx`. No Jest, no Enzyme.
+
+### What to test
+- **Interaction** — user types, clicks, keyboard navigation, wizard step transitions. Use `userEvent`, not `fireEvent`.
+- **Accessibility affordances** — roles, labels, focus order. Query by role/label first; only fall back to text queries when roles don't apply.
+- **AI surface behavior** — the "AI" badge renders on generated fields, regeneration prompts before overwriting manual edits, soft helper text appears on uncertainty, publish confirmation includes the Etsy-fees link with `target="_blank"` and `rel="noopener noreferrer"`.
+- **State preservation** — backward navigation through wizard steps does not discard work (per §Wizard behavior).
+
+### What not to test
+- Styling, CSS class names, or visual output (that's the design system's job).
+- Internal component state, implementation details, or snapshot-only output.
+- Third-party library internals.
+
+### Copy assertions stay aligned with the linter
+Any assertion on user-facing text must use the canonical ListForge vocabulary. "Guardrail" / "Guardrail Profiles" / "Generate Listing" / "Inference Results" and similar technical terms should never appear in a test-expected string — those would be false positives that lock in banned copy. See `§UX Copy Style` and the `ui-copy-linter` agent.
+
+### Uncertainty and AI disclosure
+When a field is low-confidence:
+- The test should assert the field is blank or lightly prompted.
+- The test should assert the soft helper text appears (e.g., "Please double-check this field").
+- The test should **not** assert any numeric confidence value is rendered.
+
+### Route-based wizard tests
+Wizard-step tests navigate by route (`/create/photos`, `/create/details`, …) and assert both the step indicator and the preserved form state. Use `MemoryRouter` / `createMemoryRouter` to drive the navigation.
+
 ## Design Anti-Patterns to Avoid
 
 - Cold enterprise dashboard styling.

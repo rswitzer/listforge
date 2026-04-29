@@ -625,6 +625,63 @@ Failures should be explicit, recoverable where possible, and translated into use
 - Log technical details internally.
 - Mark local state clearly enough for retry.
 
+## Testing Strategy
+
+### Test-Driven Development is mandatory
+ListForge follows Red → Green → Refactor. For every new behavior:
+
+1. **Red** — write a failing test that expresses the intended behavior.
+2. **Green** — write the smallest production change that makes the test pass.
+3. **Refactor** — clean up with the test as a safety net.
+
+The failing test must be written before the production code. The `.claude/hooks/check-tdd.sh` PreToolUse hook blocks writes to production files that have no matching test on disk, and the `tdd-reviewer` agent catches drift at review time. The three scaffolding skills (`new-usecase`, `new-aggregate`, `new-endpoint`) produce the Red test first by design.
+
+### Solution layout additions
+
+```text
+/tests
+  /ListForge.Domain.Tests
+  /ListForge.Application.Tests
+  /ListForge.Infrastructure.Tests
+  /ListForge.API.Tests
+/frontend/src/**/*.test.tsx   (co-located with the component)
+```
+
+### Frameworks (locked)
+- **Backend:** xUnit + FluentAssertions + NSubstitute.
+- **Frontend (component):** Vitest + React Testing Library + `@testing-library/user-event`.
+- **Frontend (end-to-end):** Playwright (Chromium-only). Specs live under `tests-e2e/`. Every user-facing feature has a Playwright spec alongside its Vitest tests; component-level behavior stays in Vitest.
+
+Changes to these choices require an explicit addition to the Decision Log.
+
+### Test types by layer
+
+- **Domain.Tests** — pure unit tests on aggregates and value objects. No I/O, no DI container, no mocks. Construct objects directly and assert invariants.
+- **Application.Tests** — handler-level unit tests. Use NSubstitute (or a hand-rolled fake) for repository interfaces and a test double for `ICurrentUserAccessor`. Every handler test file must cover: happy path, unauthorized user (different `UserId`), and validator failure when a validator exists.
+- **Infrastructure.Tests** — integration tests against real Postgres via Testcontainers for repository and persistence code. In-process fakes for the Anthropic/Etsy client seams. Do **not** use an in-memory EF Core provider or SQLite substitute — they hide migration and query issues.
+- **API.Tests** — endpoint integration tests built on `WebApplicationFactory<Program>`. Every endpoint has: a 2xx happy-path test, a 401 unauthenticated test, a 404 test for missing or other-user-owned resources, and a 422 test for invalid bodies. Register a test `ICurrentUserAccessor` in the factory's service overrides.
+- **Frontend (component)** — component and interaction tests (Vitest + RTL). Assert observable behavior — user events, rendered text, role-based queries — not class names or internal state. Accessibility affordances (roles, labels, focus) are part of the behavior under test.
+- **Frontend (end-to-end)** — Playwright specs in `tests-e2e/` covering full-route user flows in real Chromium. Each user-facing screen (a file under `frontend/src/pages/`) gets a sibling spec named `tests-e2e/<screen>.spec.ts`. The Playwright config auto-starts the Vite dev server and the .NET API via its `webServer` block. Assert the same kinds of observable behavior as Vitest — roles, labels, visible text, navigation, form state preservation across wizard steps.
+
+### Fakes over mocks
+Prefer a hand-rolled fake implementing the per-aggregate repository interface over NSubstitute mocks. Fakes over-specify less and read more clearly. Reserve mocks for assertions about interaction (`Received(1).Publish(...)` on the Etsy listing service, for example).
+
+### Don't mock what the project owns
+Only mock boundary interfaces — repositories, `IImageAnalysisService`, `IListingGenerationService`, the Etsy service boundary, `ICurrentUserAccessor`. Don't mock aggregates, value objects, handlers, or controllers — they're tested directly.
+
+### AI and Etsy are always tested through the domain interface
+Tests for code that depends on Claude or Etsy depend on `IImageAnalysisService`, `IListingGenerationService`, `IEtsyListingService`, etc. Tests never type-reference `Anthropic.*` or any `Etsy` SDK type. This mirrors the production rule that vendor SDKs stay contained in Infrastructure (see §AI Integration Guidance and §Etsy Integration Guidance).
+
+### Coverage bar
+No hard percentage threshold in v1. The rule is behavioral: every MediatR handler has at least one test, every public aggregate behavior has at least one test, every controller action has at least one happy-path and one failure-case test. Enforcement lives in the TDD hook and the `tdd-reviewer` agent — not in a coverage gate.
+
+### Test naming
+- **Backend:** `Method_State_Expectation` — e.g., `Handle_UserDoesNotOwnDraft_ReturnsNotFound`, `Create_MissingName_ThrowsValidationException`.
+- **Frontend:** behavior sentences — e.g., `renders the AI badge on generated fields`, `warns before overwriting manual edits`.
+
+### Arrange-Act-Assert
+All backend tests follow AAA structure, with blank lines or `// Arrange` / `// Act` / `// Assert` comments separating the three phases. Keep each test focused on one behavior.
+
 ## Coding Conventions for Claude Code
 
 ### General conventions
@@ -649,7 +706,8 @@ Failures should be explicit, recoverable where possible, and translated into use
 
 ## Suggested Initial Build Order
 
-1. Project scaffolding and solution structure.
+0. Test project scaffolding (`/tests/ListForge.Domain.Tests`, `Application.Tests`, `Infrastructure.Tests`, `API.Tests`) and frontend Vitest + React Testing Library configuration. This precedes real feature code so the TDD hook has somewhere to match against from day 1.
+1. Project scaffolding and solution structure (includes wiring the test projects from step 0 into the solution).
 2. Configuration/secrets setup.
 3. Auth boundary and current-user abstraction.
 4. Etsy connection flow.
@@ -682,6 +740,9 @@ Failures should be explicit, recoverable where possible, and translated into use
 - Deployment should be simple and portable, not Kubernetes-first.
 - Observability and configuration discipline are required from the start.
 - If implementation requires unresolved product decisions, request clarification rather than guessing.
+- Test-Driven Development is required from day 1. No production code merges without an accompanying test. The failing test is written first.
+- Test frameworks are locked: xUnit + FluentAssertions + NSubstitute for backend; Vitest + React Testing Library for frontend. Changing these requires a new entry in this log.
+- **2026-04-29:** Playwright is now in v1 scope (was: out of scope, see prior version of §Testing Strategy). Every user-facing feature gets a `tests-e2e/<feature>.spec.ts` alongside Vitest component tests. Triggered by manual verification of the wizard flow becoming the bottleneck and the need for autonomous live verification during agent-driven development. Stack remains Chromium-only for v1; cross-browser revisit when a real cross-browser bug appears.
 
 ### Open decisions intentionally left unresolved
 These should remain open until a real feature implementation requires them:

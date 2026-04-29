@@ -1,0 +1,49 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+
+# Frontend
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+coverage/
+*.log
+
+# Playwright
+playwright-report/
+test-results/
+/frontend/playwright/.cache/
+/frontend/playwright-report/
+/frontend/test-results/
+
+# Editor
+.idea/
+.vscode/
+
+# Claude local
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor backups
+*~
+*.swp
+*.swo
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+!.env.example

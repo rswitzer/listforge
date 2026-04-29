@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Test method names use Method_State_Expectation per architecture.md §Testing Strategy.
+         CA1707 is the C# "no underscores in member names" rule, which we deliberately
+         override for xUnit test methods only. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+</Project>
