@@ -40,23 +40,30 @@ banner() {
   echo "────────────────────────────────────────────────────────────"
 }
 
-run_step() {
-  local label="$1"; shift
-  banner "${label}"
-  if ! "$@"; then
-    echo
-    echo "✗ pre-push gate failed at: ${label}" >&2
-    echo "  Push to main aborted. Fix the failure or re-run with LISTFORGE_SKIP_PREPUSH=1 to bypass." >&2
-    exit 1
-  fi
+fail() {
+  local label="$1"
+  echo
+  echo "✗ pre-push gate failed at: ${label}" >&2
+  echo "  Push to main aborted. Fix the failure or re-run with LISTFORGE_SKIP_PREPUSH=1 to bypass." >&2
+  exit 1
 }
 
 banner "Pre-push gate: pushing to main — running test suites"
 
-run_step "Backend  · dotnet test ListForge.sln"    dotnet test ListForge.sln --nologo
-run_step "Frontend · pnpm typecheck"               pnpm --dir frontend typecheck
-run_step "Frontend · pnpm test"                    pnpm --dir frontend test
-run_step "E2E      · pnpm e2e (Playwright)"        pnpm --dir frontend e2e
+banner "Backend  · dotnet test ListForge.sln"
+( cd "${repo_root}" && dotnet test ListForge.sln --nologo ) || fail "Backend · dotnet test"
+
+banner "Frontend · typecheck (tsc --noEmit)"
+( cd "${repo_root}/frontend" && pnpm exec tsc --noEmit ) || fail "Frontend · typecheck"
+
+banner "Frontend · vitest run"
+( cd "${repo_root}/frontend" && pnpm exec vitest run ) || fail "Frontend · vitest"
+
+banner "E2E      · playwright test"
+# Invoke the bin script directly: pnpm 10 'exec' fails to resolve 'playwright'
+# because it's a bin exposed by '@playwright/test', not a top-level package,
+# and falls back to recursive workspace mode (ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL).
+( cd "${repo_root}/frontend" && ./node_modules/.bin/playwright test ) || fail "E2E · playwright"
 
 echo
 echo "✓ All suites passed — push to main allowed."
