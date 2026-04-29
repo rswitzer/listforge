@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Pre-push gate: when the push would update refs/heads/main, run the full
+# backend + frontend + e2e test suites. Abort the push on the first failure.
+#
+# Other branches push freely. Set LISTFORGE_SKIP_PREPUSH=1 to bypass in
+# emergencies (CI is the authoritative gate either way).
+
+set -u
+
+PROTECTED_REF="refs/heads/main"
+
+pushing_to_main=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "${remote_ref}" = "${PROTECTED_REF}" ]; then
+    pushing_to_main=1
+  fi
+done
+
+if [ "${pushing_to_main}" -eq 0 ]; then
+  exit 0
+fi
+
+if [ "${LISTFORGE_SKIP_PREPUSH:-0}" = "1" ]; then
+  echo "pre-push: LISTFORGE_SKIP_PREPUSH=1 set — skipping local test gate (CI still gates)." >&2
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "${repo_root}"
+
+if [ -f /tmp/listforge-env.sh ]; then
+  # shellcheck disable=SC1091
+  . /tmp/listforge-env.sh
+fi
+
+banner() {
+  echo
+  echo "────────────────────────────────────────────────────────────"
+  echo "  $1"
+  echo "────────────────────────────────────────────────────────────"
+}
+
+run_step() {
+  local label="$1"; shift
+  banner "${label}"
+  if ! "$@"; then
+    echo
+    echo "✗ pre-push gate failed at: ${label}" >&2
+    echo "  Push to main aborted. Fix the failure or re-run with LISTFORGE_SKIP_PREPUSH=1 to bypass." >&2
+    exit 1
+  fi
+}
+
+banner "Pre-push gate: pushing to main — running test suites"
+
+run_step "Backend  · dotnet test ListForge.sln"    dotnet test ListForge.sln --nologo
+run_step "Frontend · pnpm typecheck"               pnpm --dir frontend typecheck
+run_step "Frontend · pnpm test"                    pnpm --dir frontend test
+run_step "E2E      · pnpm e2e (Playwright)"        pnpm --dir frontend e2e
+
+echo
+echo "✓ All suites passed — push to main allowed."
+exit 0

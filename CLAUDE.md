@@ -122,3 +122,13 @@ The solution is scaffolded. All commands run from the repo root unless noted.
 
 ### Hooks
 The PreToolUse hooks at `.claude/hooks/check-layer-imports.sh` and `.claude/hooks/check-tdd.sh` fire automatically on Write/Edit. They block edits that violate architectural boundaries or skip the Red test.
+
+### Push gate (block pushes to `main` on red tests)
+Two layers protect `main`:
+
+- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, `pnpm test`, and `pnpm e2e` whenever the push would update `refs/heads/main`. Other branches push freely. Enable it once after cloning:
+  ```
+  ./scripts/setup-hooks.sh
+  ```
+  Bypass in emergencies with `LISTFORGE_SKIP_PREPUSH=1 git push` (CI still gates).
+- **GitHub Actions workflow** at `.github/workflows/main-gate.yml`. Runs the same three suites as parallel jobs (`backend`, `frontend`, `e2e`) on every push to `main` and every PR targeting `main`. Pair with a branch-protection rule requiring those checks to keep red code off `main`.
