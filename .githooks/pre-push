@@ -78,6 +78,10 @@ if [ ! -x "${playwright_bin}" ]; then
   ls -la "${repo_root}/frontend/node_modules/@playwright/test" 2>&1 | sed 's/^/      /' >&2
   fail "E2E · playwright (bin not installed)"
 fi
+# Ensure browser binaries are present. 'playwright install chromium' is
+# idempotent — it short-circuits when the right version is already cached.
+( cd "${repo_root}/frontend" && "${playwright_bin}" install chromium ) || fail "E2E · playwright install chromium"
+
 ( cd "${repo_root}/frontend" && "${playwright_bin}" test ) || fail "E2E · playwright"
 
 echo
