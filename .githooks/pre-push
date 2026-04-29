@@ -63,7 +63,22 @@ banner "E2E      · playwright test"
 # Invoke the bin script directly: pnpm 10 'exec' fails to resolve 'playwright'
 # because it's a bin exposed by '@playwright/test', not a top-level package,
 # and falls back to recursive workspace mode (ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL).
-( cd "${repo_root}/frontend" && ./node_modules/.bin/playwright test ) || fail "E2E · playwright"
+playwright_bin="${repo_root}/frontend/node_modules/.bin/playwright"
+if [ ! -x "${playwright_bin}" ]; then
+  echo "  playwright bin missing — running 'pnpm install' in frontend/ to materialize it…"
+  ( cd "${repo_root}/frontend" && pnpm install --frozen-lockfile ) || fail "E2E · pnpm install (to recover playwright bin)"
+fi
+if [ ! -x "${playwright_bin}" ]; then
+  echo
+  echo "  playwright bin is STILL missing after pnpm install. Diagnostic:" >&2
+  echo "    expected at: ${playwright_bin}" >&2
+  echo "    .bin contents:" >&2
+  ls -la "${repo_root}/frontend/node_modules/.bin/" 2>&1 | sed 's/^/      /' >&2
+  echo "    @playwright/test package:" >&2
+  ls -la "${repo_root}/frontend/node_modules/@playwright/test" 2>&1 | sed 's/^/      /' >&2
+  fail "E2E · playwright (bin not installed)"
+fi
+( cd "${repo_root}/frontend" && "${playwright_bin}" test ) || fail "E2E · playwright"
 
 echo
 echo "✓ All suites passed — push to main allowed."
