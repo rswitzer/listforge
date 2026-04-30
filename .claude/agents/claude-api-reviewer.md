@@ -15,7 +15,7 @@ If you need deep Claude-API specifics (exact cache breakpoints, tool_use semanti
 
 ## Checklist
 
-**Vendor containment (architecture.md §AI Integration Guidance)**
+**Vendor containment (docs/architecture.md §AI Integration Guidance)**
 - `Anthropic.*` types (`Message`, `ContentBlock`, `ToolUseBlock`, etc.) appear only inside the AI infrastructure folder. Flag any leakage into `Application/` or `Domain/`.
 - Application handlers depend on `IImageAnalysisService` / `IListingGenerationService`, not on the Anthropic client directly.
 - Provider payloads are normalized to application DTOs before being returned to the application layer. No `JsonElement` / raw SDK types flowing upward.
@@ -27,16 +27,16 @@ If you need deep Claude-API specifics (exact cache breakpoints, tool_use semanti
 
 **Structured output**
 - Listing generation returns a typed DTO. If the SDK uses tool-use-as-structured-output, the schema is defined once and reused; error handling covers malformed tool output.
-- Undetected / low-confidence fields leave the DTO field null rather than hallucinating a value (consistent with PRD.md §Image Analysis behavior).
+- Undetected / low-confidence fields leave the DTO field null rather than hallucinating a value (consistent with docs/PRD.md §Image Analysis behavior).
 
 **Model selection**
 - Use current Claude model IDs. If the reviewed code pins an older model, flag it and suggest the latest Opus/Sonnet/Haiku ID per the claude-api skill.
 
-**Secrets & logging (architecture.md §Configuration and Secrets, §Observability)**
+**Secrets & logging (docs/architecture.md §Configuration and Secrets, §Observability)**
 - API keys loaded from configuration, not hard-coded.
 - Prompts/images may contain seller PII — do not log full request bodies. Log latency, model ID, token counts, outcome only.
 
-**Shop Rules precedence (PRD.md §Image Analysis)**
+**Shop Rules precedence (docs/PRD.md §Image Analysis)**
 - When Shop Rules material rules conflict with image-detected materials, Shop Rules win. Verify the merge step that combines vision output + Shop Rules before calling the listing generation service.
 
 ## Output shape

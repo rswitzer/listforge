@@ -22,7 +22,7 @@ Mark N/A for items that don't apply to this change.
 - [ ] Every new interactive element has an accessible name (label, `aria-label`, or visible text).
 - [ ] Every new modal/dialog traps focus, closes on `Esc`, returns focus to its opener.
 - [ ] No information conveyed by colour alone. Errors carry text or an icon, not just red.
-- [ ] New colour combinations verified against `spec-ui.md §Accessibility` (or added to the allowed-pairs table with computed ratio).
+- [ ] New colour combinations verified against `docs/spec-ui.md §Accessibility` (or added to the allowed-pairs table with computed ratio).
 - [ ] If the change introduces a new top-level route: added to `tests-e2e/a11y.spec.ts`.
 - [ ] If the change introduces a modal/dialog: e2e test opens it and calls `checkA11y(page)`.
 - [ ] Screen-reader spot-check on the most complex new surface (VoiceOver / NVDA / TalkBack).

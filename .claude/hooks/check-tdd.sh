@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PreToolUse hook: blocks production-code writes/edits that lack a matching test.
 # Exit 2 + stderr message = deny and surface reason to the model.
-# See architecture.md §Testing Strategy and §Decision Log (TDD mandatory).
+# See docs/architecture.md §Testing Strategy and §Decision Log (TDD mandatory).
 
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,7 +25,7 @@ esac
 
 deny() {
   echo "[tdd] $1" >&2
-  echo "[tdd] Write the failing test first (Red), then the production file. See architecture.md §Testing Strategy." >&2
+  echo "[tdd] Write the failing test first (Red), then the production file. See docs/architecture.md §Testing Strategy." >&2
   exit 2
 }
 
@@ -55,10 +55,17 @@ esac
 
 # Domain *interfaces only* — repository contracts and service contracts don't need their own tests;
 # their implementations do. Detect by filename prefix + interface-only content.
+# Prefer the on-disk file when it exists (Edit calls supply only the diff in HOOK_CONTENT,
+# not the full file). Fall back to HOOK_CONTENT for Writes that create a brand-new file.
 case "$rel" in
   src/ListForge.Domain/*/I*.cs|src/ListForge.Domain/I*.cs)
-    if grep -Eq '\binterface[[:space:]]+I[A-Z]' <<<"$HOOK_CONTENT" && \
-       ! grep -Eq '\b(class|record|struct)[[:space:]]+[A-Z]' <<<"$HOOK_CONTENT"; then
+    if [ -f "$root/$rel" ]; then
+      check_content="$(cat "$root/$rel")"
+    else
+      check_content="$HOOK_CONTENT"
+    fi
+    if grep -Eq '\binterface[[:space:]]+I[A-Z]' <<<"$check_content" && \
+       ! grep -Eq '\b(class|record|struct)[[:space:]]+[A-Z]' <<<"$check_content"; then
       exit 0
     fi
     ;;
@@ -71,7 +78,7 @@ case "$rel" in
   *.d.ts)                                       exit 0 ;;
   frontend/src/**/types.ts|frontend/src/types.ts) exit 0 ;;
   # Test infrastructure (setup files, fixtures, mocks) is exempt — it's not behavior under test.
-  frontend/src/test/*|frontend/src/__tests__/*|frontend/src/**/test/setup.ts|frontend/src/**/__mocks__/*) exit 0 ;;
+  frontend/src/test/*|frontend/src/test/**|frontend/src/__tests__/*|frontend/src/**/test/setup.ts|frontend/src/**/__mocks__/*) exit 0 ;;
   *.css|*.scss|*.svg|*.png|*.jpg|*.jpeg|*.ico)  exit 0 ;;
 esac
 
@@ -104,10 +111,14 @@ test_file_exists() {
   [ -f "$root/$1" ]
 }
 
-# Backend: .cs files under Domain / Application / Infrastructure / API Controllers.
+# Backend: .cs files under Domain / Application / Infrastructure / API Controllers, Filters, Middleware.
+# Filters and Middleware are not on the docs/architecture.md exemption list — they're real
+# request-pipeline code (auth filters, current-user middleware) and need tests.
 if [[ "$rel" == src/ListForge.Domain/*.cs ]] || \
    [[ "$rel" == src/ListForge.Infrastructure/*.cs ]] || \
-   [[ "$rel" == src/ListForge.API/Controllers/*.cs ]]; then
+   [[ "$rel" == src/ListForge.API/Controllers/*.cs ]] || \
+   [[ "$rel" == src/ListForge.API/Filters/*.cs ]] || \
+   [[ "$rel" == src/ListForge.API/Middleware/*.cs ]]; then
 
   # src/ListForge.X/Sub/Path/Name.cs → tests/ListForge.X.Tests/Sub/Path/NameTests.cs
   layer="${rel#src/ListForge.}"

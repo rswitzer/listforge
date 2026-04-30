@@ -27,28 +27,30 @@ export function HelloPanel() {
     };
   }, []);
 
-  if (status === 'loading') {
-    return <p className="text-espresso/70">Loading…</p>;
-  }
-
-  if (status === 'error') {
-    return (
-      <p
-        role="alert"
-        className="text-terracotta flex items-center justify-center gap-2"
-      >
-        <span aria-hidden="true">⚠</span>
-        <span>Couldn't reach the server.</span>
-      </p>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      <h1 className="text-3xl font-semibold text-espresso">{message}</h1>
-      <p className="text-espresso/70">
-        ListForge backend is wired and serving the API.
-      </p>
+    <div
+      aria-live="polite"
+      aria-busy={status === 'loading'}
+      className="space-y-3"
+    >
+      <h1 className="text-3xl font-semibold text-espresso">
+        {status === 'ok' ? message : 'ListForge'}
+      </h1>
+      {status === 'loading' && <p className="text-espresso/70">Loading…</p>}
+      {status === 'error' && (
+        <p
+          role="alert"
+          className="text-terracotta flex items-center justify-center gap-2"
+        >
+          <span aria-hidden="true">⚠</span>
+          <span>Couldn't reach the server.</span>
+        </p>
+      )}
+      {status === 'ok' && (
+        <p className="text-espresso/70">
+          ListForge backend is wired and serving the API.
+        </p>
+      )}
     </div>
   );
 }

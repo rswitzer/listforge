@@ -5,7 +5,7 @@ description: Scaffold a new user-facing screen for ListForge — Playwright e2e 
 
 # feature-tdd
 
-Use this skill when adding a new **user-facing screen** — a top-level routed surface (per `spec-ui.md` §Screen Inventory). Examples: Welcome, Connect Etsy, Create Listing wizard steps, Saved Drafts, Edit Listing, Shop Rules List, Shop Rules Editor, Settings, Publish Confirmation.
+Use this skill when adding a new **user-facing screen** — a top-level routed surface (per `docs/spec-ui.md` §Screen Inventory). Examples: Welcome, Connect Etsy, Create Listing wizard steps, Saved Drafts, Edit Listing, Shop Rules List, Shop Rules Editor, Settings, Publish Confirmation.
 
 Reusable components and hooks **don't** use this skill — they go through the standard sibling-test pattern. This skill is specifically for **pages** that need real-browser verification.
 
@@ -27,14 +27,14 @@ test.describe('<ScreenName>', () => {
   test('<the primary user-facing behavior, in plain English>', async ({ page }) => {
     await page.goto('/<route>');
 
-    // Assert role-first observable behavior (per spec-ui.md §Frontend Testing):
+    // Assert role-first observable behavior (per docs/spec-ui.md §Frontend Testing):
     await expect(page.getByRole('heading', { name: /<canonical heading>/i })).toBeVisible();
     // … one or two more assertions for the happy path …
   });
 });
 ```
 
-Use **canonical ListForge vocabulary** in expected strings — `Shop Rules`, `Create Listing`, `Saved Drafts`, never the banned terms (`Guardrail`, `Generate Listing`, `Inference Results`, etc. — see `spec-ui.md` §UX Copy Style).
+Use **canonical ListForge vocabulary** in expected strings — `Shop Rules`, `Create Listing`, `Saved Drafts`, never the banned terms (`Guardrail`, `Generate Listing`, `Inference Results`, etc. — see `docs/spec-ui.md` §UX Copy Style).
 
 ### 2. Vitest test — `frontend/src/pages/<ScreenName>.test.tsx`
 
@@ -100,6 +100,6 @@ Rules during iteration:
 
 ## Reference
 
-- `architecture.md` §Testing Strategy — the locked frameworks and the per-layer contract.
-- `spec-ui.md` §Frontend Testing — what Playwright should assert (roles, AI badges, regenerate warnings, publish modal Etsy-fees link, wizard back-nav state).
+- `docs/architecture.md` §Testing Strategy — the locked frameworks and the per-layer contract.
+- `docs/spec-ui.md` §Frontend Testing — what Playwright should assert (roles, AI badges, regenerate warnings, publish modal Etsy-fees link, wizard back-nav state).
 - `docs/testing.md` — canonical test patterns and copy assertion rule.

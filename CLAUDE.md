@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repo currently contains only planning documents — no code, no build tooling, no tests yet. Treat the three spec files as the source of truth until they are superseded by code or newer decisions:
 
-- `PRD.md` — product requirements, feature list (F1–F8), decisions already made.
-- `architecture.md` — implementation guidance; explicitly the "default architectural source of truth" for v1.
-- `spec-ui.md` — screens, flows, tone, copy, responsive behavior.
+- `docs/PRD.md` — product requirements, feature list (F1–F8), decisions already made.
+- `docs/architecture.md` — implementation guidance; explicitly the "default architectural source of truth" for v1.
+- `docs/spec-ui.md` — screens, flows, tone, copy, responsive behavior.
 
-When implementing, read the relevant spec section first. If a decision is marked "open" or missing, stop and ask rather than inventing product behavior (this is called out explicitly in `architecture.md`).
+When implementing, read the relevant spec section first. If a decision is marked "open" or missing, stop and ask rather than inventing product behavior (this is called out explicitly in `docs/architecture.md`).
 
 ## What ListForge Is
 
@@ -53,7 +53,7 @@ Every production change follows Red → Green → Refactor: write the failing te
 
 Tests must also be **green at end-of-turn**: the `.claude/hooks/run-affected-tests.sh` Stop hook runs `pnpm typecheck` + `vitest --changed` on touched frontend files, `playwright test` when any frontend or `tests-e2e/` file is touched, and `dotnet test` on touched backend test projects. Blocks the turn from ending if any fail. Set `LISTFORGE_SKIP_STOP_TESTS=1` to bypass for doc-only or planning sessions.
 
-Test projects live under `/tests/ListForge.{Domain,Application,Infrastructure,API}.Tests`. Frontend component tests are co-located as `ComponentName.test.tsx`. End-to-end Playwright specs live under `tests-e2e/` and run in real Chromium (the Playwright config auto-starts the Vite dev server and the .NET API). Each user-facing **page** under `frontend/src/pages/` is required by `check-tdd.sh` to have both a sibling Vitest test and a matching `tests-e2e/<name>.spec.ts`. Frontend test infrastructure (custom `render`, jest-dom setup) lives under `frontend/src/test/`; canonical patterns are in `docs/testing.md`. Locked framework choices: xUnit + FluentAssertions + NSubstitute for backend, Vitest + React Testing Library for frontend components, Playwright for end-to-end. See `architecture.md §Testing Strategy` for the full contract (test types per layer, Testcontainers for repos, no vendor-SDK mocking, coverage expectations, naming).
+Test projects live under `/tests/ListForge.{Domain,Application,Infrastructure,API}.Tests`. Frontend component tests are co-located as `ComponentName.test.tsx`. End-to-end Playwright specs live under `tests-e2e/` and run in real Chromium (the Playwright config auto-starts the Vite dev server and the .NET API). Each user-facing **page** under `frontend/src/pages/` is required by `check-tdd.sh` to have both a sibling Vitest test and a matching `tests-e2e/<name>.spec.ts`. Frontend test infrastructure (custom `render`, jest-dom setup) lives under `frontend/src/test/`; canonical patterns are in `docs/testing.md`. Locked framework choices: xUnit + FluentAssertions + NSubstitute for backend, Vitest + React Testing Library for frontend components, Playwright for end-to-end. See `docs/architecture.md §Testing Strategy` for the full contract (test types per layer, Testcontainers for repos, no vendor-SDK mocking, coverage expectations, naming).
 
 ### Live verification with the Playwright MCP
 The repo ships an `.mcp.json` that registers the official `@playwright/mcp` server. After you approve it on first use (`claude mcp list`), the assistant can drive a real Chromium browser during a task — navigate routes, click controls, take screenshots, inspect the DOM. Use it to iterate on a feature until it visibly works, not just until tests pass. The dev server can be started in the background with `pnpm --dir frontend dev` and torn down at end-of-task.
@@ -92,13 +92,13 @@ All listing fields are always editable (no hidden edit modes). AI-generated fiel
 Publishing requires an explicit confirmation modal that mentions Etsy listing fees may apply and links to Etsy's fee page in a new tab.
 
 ### Accessibility is enforced (WCAG 2.1 AA)
-Every PR is gated on AA conformance across four layers: `eslint-plugin-jsx-a11y` at `error` severity in `pnpm lint`; `vitest-axe` (`expect(await axe(container)).toHaveNoViolations()`) in component tests, with the configured wrapper at `frontend/src/test/axe.ts`; `@axe-core/playwright` in `tests-e2e/a11y.spec.ts` (helper at `tests-e2e/utils/a11y.ts`) — call `checkA11y(page)` after meaningful state changes in feature specs; and the `a11y-reviewer` agent on frontend PRs. Allowed text/background colour pairs and the full normative rule set live in `spec-ui.md §Accessibility`. Adding a new colour token requires re-verifying contrast against the documented pairings.
+Every PR is gated on AA conformance across four layers: `eslint-plugin-jsx-a11y` at `error` severity in `pnpm lint`; `vitest-axe` (`expect(await axe(container)).toHaveNoViolations()`) in component tests, with the configured wrapper at `frontend/src/test/axe.ts`; `@axe-core/playwright` in `tests-e2e/a11y.spec.ts` (helper at `tests-e2e/utils/a11y.ts`) — call `checkA11y(page)` after meaningful state changes in feature specs; and the `a11y-reviewer` agent on frontend PRs. Allowed text/background colour pairs and the full normative rule set live in `docs/spec-ui.md §Accessibility`. Adding a new colour token requires re-verifying contrast against the documented pairings.
 
 **Always invoke the `a11y-reviewer` agent before declaring any frontend feature done.** This is non-negotiable, not "if it looks risky". The automated layers catch ~⅓ of WCAG; the agent reasons about the rest (color-only signaling, focus management, modal contracts, live regions, suppression justifications). Run it on the diff after the feature's tests are green and before reporting completion to the user. Skip only for backend-only or doc-only changes.
 
 ## Suggested Build Order
 
-From `architecture.md` §"Suggested Initial Build Order": scaffolding → config/secrets → auth boundary → Etsy connection → Shop Rules CRUD → Draft CRUD → draft images → generation → edit save → field regeneration → publish → existing-listing browse/edit → observability → cleanup.
+From `docs/architecture.md` §"Suggested Initial Build Order": scaffolding → config/secrets → auth boundary → Etsy connection → Shop Rules CRUD → Draft CRUD → draft images → generation → edit save → field regeneration → publish → existing-listing browse/edit → observability → cleanup.
 
 ## Commands
 

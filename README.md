@@ -6,9 +6,9 @@ A web app that helps independent Etsy sellers (initial wedge: jewelry makers) ge
 
 ## Source of truth
 
-- [`PRD.md`](./PRD.md) — product requirements and feature list.
-- [`architecture.md`](./architecture.md) — implementation guidance, testing strategy, decision log.
-- [`spec-ui.md`](./spec-ui.md) — screens, flows, tone, copy, responsive rules.
+- [`docs/PRD.md`](./docs/PRD.md) — product requirements and feature list.
+- [`docs/architecture.md`](./docs/architecture.md) — implementation guidance, testing strategy, decision log.
+- [`docs/spec-ui.md`](./docs/spec-ui.md) — screens, flows, tone, copy, responsive rules.
 - [`CLAUDE.md`](./CLAUDE.md) — repo-level guidance for working with Claude Code in this codebase.
 
 If a feature isn't covered in those docs, stop and ask before inventing product behavior.
@@ -167,11 +167,11 @@ The repo ships an `.mcp.json` registering Microsoft's official Playwright MCP se
 - One repository per aggregate root (`IListingDraftRepository`, never `IRepository<T>`).
 - Every list/read/update/delete is user-scoped (`ICurrentUserAccessor`).
 - Vendor SDKs (Supabase, Anthropic, Etsy) only inside `ListForge.Infrastructure`.
-- v1 has **no** versioning, **no** domain events, **no** job queues, **no** rules engine — `architecture.md §Non-Goals` is the canonical list.
+- v1 has **no** versioning, **no** domain events, **no** job queues, **no** rules engine — `docs/architecture.md §Non-Goals` is the canonical list.
 - UI copy uses friendly language. "Shop Rules", not "Guardrail Profiles". "Create Listing", not "Generate Listing".
 - Frontend test patterns (custom `render`, role-first queries, AI-surface assertions, copy rule) are in [`docs/testing.md`](./docs/testing.md).
 
-See `architecture.md` and `spec-ui.md` for the full set.
+See `docs/architecture.md` and `docs/spec-ui.md` for the full set.
 
 ## Endpoints (so far)
 

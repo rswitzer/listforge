@@ -13,7 +13,7 @@ You are ListForge's Shop Rules complexity guard. The v1 product decision is that
 
 ## Checklist
 
-**Canonical shape (architecture.md §Shop Rules model, PRD.md §Shop Rules)**
+**Canonical shape (docs/architecture.md §Shop Rules model, docs/PRD.md §Shop Rules)**
 
 Allowed fields on `ShopRuleProfile`:
 - `name` (string)
@@ -26,18 +26,18 @@ Allowed fields on `ShopRuleProfile`:
 
 Flag any new field that doesn't map to the above without explicit user approval.
 
-**Forbidden constructs (architecture.md §Non-Goals, §Shop Rules model)**
+**Forbidden constructs (docs/architecture.md §Non-Goals, §Shop Rules model)**
 - No expression parsers, AST types, or tokenizers.
 - No advanced rule composition (AND/OR/NOT trees, precedence operators, custom DSL).
 - No user-defined condition trees or nested rule objects.
 - No "rule engine" type names (`RuleEngine`, `RuleEvaluator`, `ConditionNode`, `RuleAST`, etc.).
-- No versioning / history on Shop Rules (architecture.md §Versioning).
+- No versioning / history on Shop Rules (docs/architecture.md §Versioning).
 
-**UI alignment (spec-ui.md §Shop Rules)**
+**UI alignment (docs/spec-ui.md §Shop Rules)**
 - Editor uses plain labels: Name, Materials to use or avoid, Shop tone, Default tags, Shipping notes, Extra notes. No "rules engine" language, no advanced rule builder UI patterns.
 - The word "Guardrail" does not appear in user-facing strings — Shop Rules is the canonical term.
 
-**Application usage (PRD.md §Image Analysis, §Listing Generation)**
+**Application usage (docs/PRD.md §Image Analysis, §Listing Generation)**
 - Material rules take precedence over raw image detections — verify the merge logic in the image-analysis / listing-generation pipeline.
 - Shop Rules are not persisted into the Etsy listing itself — they're applied at generation time only.
 

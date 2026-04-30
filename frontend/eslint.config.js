@@ -35,5 +35,11 @@ export default tseslint.config(
   {
     files: ['**/*.{tsx,jsx}'],
     ...jsxA11y.flatConfigs.recommended,
+    rules: {
+      // jsx-a11y@6 ships this rule `off` (with an upstream TODO to flip it).
+      // docs/spec-ui.md §Accessibility requires destination-conveying link
+      // text — promote it to `error` so `pnpm lint` enforces it.
+      'jsx-a11y/anchor-ambiguous-text': 'error',
+    },
   },
 );

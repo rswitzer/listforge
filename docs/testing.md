@@ -2,7 +2,7 @@
 
 Canonical patterns for ListForge tests. The non-negotiables (TDD, locked
 frameworks, layer-specific contracts, no vendor-SDK mocks) live in
-[`architecture.md` §Testing Strategy](../architecture.md). This doc shows the
+[`architecture.md` §Testing Strategy](./architecture.md). This doc shows the
 shapes — copy-paste-friendly examples only.
 
 ## Frontend (Vitest + RTL)
@@ -260,7 +260,7 @@ The xUnit + FluentAssertions + NSubstitute contract per layer
 Testcontainers Postgres, API via `WebApplicationFactory<Program>`),
 the required cases per handler/endpoint (happy path, 401, 404, 422), the
 test-naming convention, and the no-vendor-SDK-mocks rule all live in
-[`architecture.md` §Testing Strategy](../architecture.md). That section is
+[`architecture.md` §Testing Strategy](./architecture.md). That section is
 authoritative — don't duplicate it here.
 
 ## Enforcement

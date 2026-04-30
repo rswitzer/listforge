@@ -5,6 +5,10 @@ import { checkA11y } from './utils/a11y';
 // violations against axe-core. Per-feature specs may add their own
 // `checkA11y(page)` calls after meaningful state changes (e.g. modal open,
 // wizard step advance) — this spec is the minimum, not the ceiling.
+//
+// CONTRIBUTOR NOTE: When you add a new top-level route to the app, add an
+// entry here. The check-tdd hook requires a per-page e2e spec, but it does
+// NOT enforce floor a11y coverage — that's owned by this list.
 const ROUTES: Array<{ name: string; path: string }> = [
   { name: 'home', path: '/' },
 ];

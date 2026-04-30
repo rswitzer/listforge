@@ -13,7 +13,7 @@ You are ListForge's Etsy integration reviewer. Etsy is an external system with i
 
 ## Checklist
 
-**Boundary (architecture.md §Etsy Integration Guidance)**
+**Boundary (docs/architecture.md §Etsy Integration Guidance)**
 - All Etsy calls go through `IEtsyOAuthService`, `IEtsyListingService`, or `IEtsyShopService`. No direct HttpClient calls to `etsy.com` outside `Infrastructure/EtsyIntegration`.
 - Raw Etsy response types never appear in `Domain/` or `Application/` — responses are mapped to application DTOs inside the integration layer.
 - No duplicated publish/update logic across handlers; all publish flows funnel through the integration service.
@@ -23,16 +23,16 @@ You are ListForge's Etsy integration reviewer. Etsy is an external system with i
 - Tokens never appear in log statements, exception messages, or DTOs returned from controllers.
 - No token values in test fixtures that could be committed.
 
-**Publish/update semantics (§Publish semantics, §Failure handling, PRD.md F6)**
+**Publish/update semantics (§Publish semantics, §Failure handling, docs/PRD.md F6)**
 - Publish requires a confirmation step upstream (frontend modal) — verify the endpoint isn't auto-publishing without explicit user intent.
 - On failure: draft is preserved with an error state, images retained, retry is possible. Flag any code that deletes images or drops drafts on exception.
 - Idempotency-aware where supported (e.g., don't re-send the same publish request twice on retry without a dedupe key).
 
-**Existing-listing edit (PRD.md F7)**
+**Existing-listing edit (docs/PRD.md F7)**
 - Edits flow through the same integration service and return the updated Etsy state to the app.
 - The editing experience must match the create flow's form conventions — flag divergence.
 
-**Logging (architecture.md §Observability and Logging)**
+**Logging (docs/architecture.md §Observability and Logging)**
 - Etsy OAuth start/completion/failure, publish attempts + outcomes, and external dependency failures are structured-logged with user ID + draft ID.
 - Never log raw tokens or full request bodies unnecessarily.
 
