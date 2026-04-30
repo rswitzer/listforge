@@ -123,6 +123,8 @@ The solution is scaffolded. All commands run from the repo root unless noted.
 ### Hooks
 The PreToolUse hooks at `.claude/hooks/check-layer-imports.sh` and `.claude/hooks/check-tdd.sh` fire automatically on Write/Edit. They block edits that violate architectural boundaries or skip the Red test.
 
+The PostToolUse hook at `.claude/hooks/check-lint.sh` runs after each Write/Edit and warns (non-blocking, stderr) on lint findings: ESLint for `frontend/**/*.{ts,tsx,js,jsx}`, `dotnet format whitespace --verify-no-changes` for `.cs` files under `src/` and `tests/`, and `jq empty` for `.json` files. Set `LISTFORGE_SKIP_LINT_HOOK=1` to bypass; the hook also fails open if the relevant toolchain isn't on PATH.
+
 ### Push gate (block pushes to `main` on red tests)
 Two layers protect `main`:
 
