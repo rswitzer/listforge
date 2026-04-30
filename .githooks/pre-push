@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Pre-push gate: when the push would update refs/heads/main, run the full
-# backend + frontend + e2e test suites. Abort the push on the first failure.
+# Pre-push gate: when the push would update refs/heads/main, run the fast
+# local test suites (dotnet, tsc --noEmit, vitest). Abort the push on first
+# failure.
+#
+# E2E (Playwright) lives in CI — see the rationale block below for why.
 #
 # Other branches push freely. Set LISTFORGE_SKIP_PREPUSH=1 to bypass in
 # emergencies (CI is the authoritative gate either way).
@@ -59,30 +62,24 @@ banner "Frontend · typecheck (tsc --noEmit)"
 banner "Frontend · vitest run"
 ( cd "${repo_root}/frontend" && pnpm exec vitest run ) || fail "Frontend · vitest"
 
-banner "E2E      · playwright test"
-# Invoke the bin script directly: pnpm 10 'exec' fails to resolve 'playwright'
-# because it's a bin exposed by '@playwright/test', not a top-level package,
-# and falls back to recursive workspace mode (ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL).
-playwright_bin="${repo_root}/frontend/node_modules/.bin/playwright"
-if [ ! -x "${playwright_bin}" ]; then
-  echo "  playwright bin missing — running 'pnpm install' in frontend/ to materialize it…"
-  ( cd "${repo_root}/frontend" && pnpm install --frozen-lockfile ) || fail "E2E · pnpm install (to recover playwright bin)"
+# E2E (Playwright) is intentionally NOT run here.
+# Rationale:
+#   - Real-browser E2E needs system libraries (libglib, libnss, …) that
+#     aren't always present on dev containers / Codespaces, and installing
+#     them requires sudo on every push.
+#   - The GitHub Actions workflow at .github/workflows/main-gate.yml runs
+#     E2E in a clean Ubuntu runner with --with-deps and is the authoritative
+#     gate. Branch-protection on the 'e2e' check keeps red E2E off main.
+# Opt in locally with LISTFORGE_PREPUSH_E2E=1 if your machine is set up.
+if [ "${LISTFORGE_PREPUSH_E2E:-0}" = "1" ]; then
+  banner "E2E      · playwright test (opt-in via LISTFORGE_PREPUSH_E2E=1)"
+  playwright_bin="${repo_root}/frontend/node_modules/.bin/playwright"
+  if [ ! -x "${playwright_bin}" ]; then
+    ( cd "${repo_root}/frontend" && pnpm install --frozen-lockfile ) || fail "E2E · pnpm install"
+  fi
+  ( cd "${repo_root}/frontend" && "${playwright_bin}" install chromium ) || fail "E2E · playwright install chromium"
+  ( cd "${repo_root}/frontend" && "${playwright_bin}" test ) || fail "E2E · playwright"
 fi
-if [ ! -x "${playwright_bin}" ]; then
-  echo
-  echo "  playwright bin is STILL missing after pnpm install. Diagnostic:" >&2
-  echo "    expected at: ${playwright_bin}" >&2
-  echo "    .bin contents:" >&2
-  ls -la "${repo_root}/frontend/node_modules/.bin/" 2>&1 | sed 's/^/      /' >&2
-  echo "    @playwright/test package:" >&2
-  ls -la "${repo_root}/frontend/node_modules/@playwright/test" 2>&1 | sed 's/^/      /' >&2
-  fail "E2E · playwright (bin not installed)"
-fi
-# Ensure browser binaries are present. 'playwright install chromium' is
-# idempotent — it short-circuits when the right version is already cached.
-( cd "${repo_root}/frontend" && "${playwright_bin}" install chromium ) || fail "E2E · playwright install chromium"
-
-( cd "${repo_root}/frontend" && "${playwright_bin}" test ) || fail "E2E · playwright"
 
 echo
 echo "✓ All suites passed — push to main allowed."

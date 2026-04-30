@@ -126,7 +126,7 @@ The PreToolUse hooks at `.claude/hooks/check-layer-imports.sh` and `.claude/hook
 ### Push gate (block pushes to `main` on red tests)
 Two layers protect `main`:
 
-- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, `pnpm test`, and `pnpm e2e` whenever the push would update `refs/heads/main`. Other branches push freely. Enable it once after cloning:
+- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, and `pnpm test` whenever the push would update `refs/heads/main`. Other branches push freely. E2E (Playwright) is intentionally **not** in the local gate because it needs system libs (libglib, libnss, …) that aren't always present in dev containers; CI handles E2E. Set `LISTFORGE_PREPUSH_E2E=1 git push` to opt into running it locally on a machine where you've already installed the deps. Enable the hook once after cloning:
   ```
   ./scripts/setup-hooks.sh
   ```
