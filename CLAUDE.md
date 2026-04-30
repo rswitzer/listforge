@@ -91,6 +91,11 @@ All listing fields are always editable (no hidden edit modes). AI-generated fiel
 ### Publish confirmation is mandatory
 Publishing requires an explicit confirmation modal that mentions Etsy listing fees may apply and links to Etsy's fee page in a new tab.
 
+### Accessibility is enforced (WCAG 2.1 AA)
+Every PR is gated on AA conformance across four layers: `eslint-plugin-jsx-a11y` at `error` severity in `pnpm lint`; `vitest-axe` (`expect(await axe(container)).toHaveNoViolations()`) in component tests, with the configured wrapper at `frontend/src/test/axe.ts`; `@axe-core/playwright` in `tests-e2e/a11y.spec.ts` (helper at `tests-e2e/utils/a11y.ts`) — call `checkA11y(page)` after meaningful state changes in feature specs; and the `a11y-reviewer` agent on frontend PRs. Allowed text/background colour pairs and the full normative rule set live in `spec-ui.md §Accessibility`. Adding a new colour token requires re-verifying contrast against the documented pairings.
+
+**Always invoke the `a11y-reviewer` agent before declaring any frontend feature done.** This is non-negotiable, not "if it looks risky". The automated layers catch ~⅓ of WCAG; the agent reasons about the rest (color-only signaling, focus management, modal contracts, live regions, suppression justifications). Run it on the diff after the feature's tests are green and before reporting completion to the user. Skip only for backend-only or doc-only changes.
+
 ## Suggested Build Order
 
 From `architecture.md` §"Suggested Initial Build Order": scaffolding → config/secrets → auth boundary → Etsy connection → Shop Rules CRUD → Draft CRUD → draft images → generation → edit save → field regeneration → publish → existing-listing browse/edit → observability → cleanup.
@@ -128,7 +133,7 @@ The PostToolUse hook at `.claude/hooks/check-lint.sh` runs after each Write/Edit
 ### Push gate (block pushes to `main` on red tests)
 Two layers protect `main`:
 
-- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, and `pnpm test` whenever the push would update `refs/heads/main`. Other branches push freely. E2E (Playwright) is intentionally **not** in the local gate because it needs system libs (libglib, libnss, …) that aren't always present in dev containers; CI handles E2E. Set `LISTFORGE_PREPUSH_E2E=1 git push` to opt into running it locally on a machine where you've already installed the deps. Enable the hook once after cloning:
+- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, `pnpm lint` (jsx-a11y errors block here), `pnpm test` (includes vitest-axe), and `playwright test` (includes the axe-core e2e a11y spec) whenever the push would update `refs/heads/main`. Other branches push freely. E2E runs by default; opt out with `LISTFORGE_SKIP_PREPUSH_E2E=1 git push` on machines where Chromium system libs (libglib, libnss, …) aren't installed (some dev containers / Codespaces). Enable the hook once after cloning:
   ```
   ./scripts/setup-hooks.sh
   ```

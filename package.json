@@ -1,0 +1,8 @@
+{
+  "name": "listforge-tests-e2e",
+  "private": true,
+  "description": "Repo-root devDependencies for end-to-end specs under tests-e2e/. The application frontend lives in ./frontend.",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3"
+  }
+}

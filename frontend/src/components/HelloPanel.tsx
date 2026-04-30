@@ -33,7 +33,13 @@ export function HelloPanel() {
 
   if (status === 'error') {
     return (
-      <p className="text-terracotta">Couldn't reach the server.</p>
+      <p
+        role="alert"
+        className="text-terracotta flex items-center justify-center gap-2"
+      >
+        <span aria-hidden="true">⚠</span>
+        <span>Couldn't reach the server.</span>
+      </p>
     );
   }
 

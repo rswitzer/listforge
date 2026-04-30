@@ -197,6 +197,50 @@ Same query priority as Vitest: role first, then label, then text. Same canonical
 vocabulary rule — never `Guardrail`, never `Generate Listing`, never confidence
 scores.
 
+### Accessibility assertions
+
+WCAG 2.1 AA is enforced at every test layer (see `spec-ui.md §Accessibility`
+for the full rule set). The mechanics:
+
+**Component tests (Vitest)** — every component test asserts no axe
+violations on the final rendered DOM. Use the configured wrapper from
+`@/test/axe`, not `vitest-axe` directly — the wrapper disables axe-core's
+`color-contrast` rule (jsdom has no `<canvas>` 2D context, so the rule is
+unreliable; contrast is verified in real Chromium via the Playwright spec).
+
+```ts
+import { axe } from '@/test/axe';
+
+it('has no axe-detectable accessibility violations', async () => {
+  const { container } = render(<MyComponent />);
+  await waitFor(() => expect(screen.getByRole('heading')).toBeInTheDocument());
+  expect(await axe(container)).toHaveNoViolations();
+});
+```
+
+The matcher is wired globally in `frontend/src/test/setup.ts`.
+
+**End-to-end (Playwright)** — the `tests-e2e/a11y.spec.ts` floor-coverage
+spec walks every top-level route. Per-feature specs may also call the helper
+after meaningful state changes (modal open, wizard step advance, error path):
+
+```ts
+import { checkA11y } from './utils/a11y';
+
+await page.goto('/create/photos');
+await checkA11y(page);
+
+await page.getByRole('button', { name: /next/i }).click();
+await checkA11y(page);   // re-check after the state change
+```
+
+`checkA11y(page, { include?, exclude?, disableRules? })` runs `AxeBuilder`
+filtered to `wcag2a, wcag2aa, wcag21a, wcag21aa` and asserts zero violations
+with a readable failure message.
+
+**Lint** — `eslint-plugin-jsx-a11y` is active in `pnpm lint` at `error`
+severity. Lint failures block both the pre-push hook and CI.
+
 ### When to use Vitest vs Playwright
 
 - **Vitest**: deterministic component-level behavior — state transitions,

@@ -576,20 +576,84 @@ Avoid labels like:
 
 ## Accessibility
 
-### Requirements
-- Clear heading hierarchy.
-- High contrast text.
-- Visible focus states.
-- Keyboard accessibility.
-- Large tap targets.
-- Plain-language errors.
-- Descriptive labels.
+### Target
+
+ListForge conforms to **WCAG 2.1 Level AA**. This is normative, not aspirational — every PR is gated on it.
+
+### Enforcement
+
+| Layer | Tool | Where |
+|---|---|---|
+| Lint | `eslint-plugin-jsx-a11y` (recommended preset, `error` severity) | `frontend/eslint.config.js`, runs in `pnpm lint`, gated in pre-push and CI |
+| Component test | `vitest-axe` (`expect(await axe(container)).toHaveNoViolations()`) | Required in every component test that renders DOM. Helper at `frontend/src/test/axe.ts` |
+| End-to-end | `@axe-core/playwright` (WCAG 2.1 AA tags) | `tests-e2e/a11y.spec.ts` walks every top-level route. Helper at `tests-e2e/utils/a11y.ts`. Per-feature specs may also call `checkA11y(page)` after meaningful state changes |
+| Review | `.claude/agents/a11y-reviewer` | Run on frontend PRs alongside `ui-copy-linter` |
+| Manual | PR template self-check | `.github/PULL_REQUEST_TEMPLATE.md` |
+
+### Normative rules
+
+These are all testable and required.
+
+#### Structure
+- Exactly one `<h1>` per page; heading levels descend without skipping.
+- Every page has a single `<main>` landmark; navigation, complementary, and contentinfo regions use the corresponding semantic elements or roles.
+- Every interactive control is reachable in tab order and operable with `Enter`/`Space` (or arrow keys for composite widgets).
+
+#### Labels and names
+- Every form control has a programmatically associated `<label>` (or `aria-label` / `aria-labelledby` when a visible label is impossible).
+- Every icon-only button has an `aria-label`. The "AI" badge on generated fields is a labelled element, not a bare icon.
+- Every link's accessible name conveys destination ("Etsy fees page", not "click here").
+- Images have an `alt` attribute. Decorative images use `alt=""`.
+
+#### Focus and modals
+- Focus indicators are always visible — never `outline: none` without a replacement.
+- Dialogs (publish confirmation, regenerate-overwrite warning, any modal) trap focus, close on `Esc`, and return focus to the element that opened them. Use a Radix dialog primitive or equivalent — do not roll your own.
+- Tab order matches reading order; `tabIndex > 0` is forbidden.
+
+#### State and live regions
+- Wizard step transitions either move focus to the new step's heading or announce the change via a polite live region.
+- Validation errors are announced (live region or `aria-describedby` on the offending field) and survive screen-reader review — not just colour.
+- Loading/processing states have an accessible name ("Generating listing…", not just a spinner).
+
+#### Color and contrast
+- Body text and meaningful UI components meet **4.5:1** against their background. Large text (≥ 18.66px bold or ≥ 24px regular) and incidental UI may meet **3:1**.
+- Information is never conveyed by colour alone. Errors carry both colour and an icon/text marker.
+- The allowed text/background pairs (verified ≥ 4.5:1) are:
+
+  | Foreground | Background | Ratio |
+  |---|---|---|
+  | `espresso #3A2E25` | `cream #F7F1E5` | ≈ 12:1 |
+  | `espresso #3A2E25` | `sand #EFE6D2` | ≈ 11:1 |
+  | `espresso/70` (≈ #736961 effective) | `cream #F7F1E5` | ≈ 4.82:1 |
+  | `espresso/70` (≈ #706559 effective) | `sand #EFE6D2` | ≈ 4.68:1 |
+  | `terracotta #9A4F2A` | `cream #F7F1E5` | ≈ 5.3:1 |
+  | `terracotta #9A4F2A` | `sand #EFE6D2` | ≈ 4.9:1 |
+  | `moss #5C6E48` | `cream #F7F1E5` | ≈ 4.95:1 |
+  | `moss #5C6E48` | `sand #EFE6D2` | ≈ 4.53:1 |
+
+  Adding a new colour pair requires re-verifying contrast; introducing a colour token without an AA-passing intended pairing is a review block.
+
+#### Targets and motion
+- Interactive targets are at least 44 × 44 CSS px (WCAG 2.5.5 AAA, but a v1 floor for the non-technical audience).
+- Honour `prefers-reduced-motion`. Animations longer than 200ms degrade to no animation when reduced motion is requested.
 
 ### Special considerations
 Because the product targets non-technical users:
 - Helper text should reduce confusion.
 - Warnings should be calm and clear.
 - Every important action should be reversible or confirmed when risk is involved.
+
+### What axe and lint don't catch
+
+Tooling covers roughly a third of WCAG. The PR self-check is required for the rest:
+- Real keyboard-only walkthrough of every changed flow.
+- Screen-reader spot-check (VoiceOver on macOS, NVDA on Windows, or TalkBack on Android) when the change introduces a new interactive surface.
+- Verify focus order matches visual order on changed screens.
+- Verify error messages are useful when read by themselves.
+
+### Exceptions
+
+If a third-party widget can't be made AA-compliant, document the violation and the user-impact in `docs/a11y-exceptions.md` (create the file if it doesn't exist) and link the issue. Suppressing an axe rule or a `jsx-a11y` rule inline requires the same justification in a comment immediately above the suppression.
 
 ## Frontend Testing
 

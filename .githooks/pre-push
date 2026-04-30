@@ -59,20 +59,22 @@ banner "Backend  · dotnet test ListForge.sln"
 banner "Frontend · typecheck (tsc --noEmit)"
 ( cd "${repo_root}/frontend" && pnpm exec tsc --noEmit ) || fail "Frontend · typecheck"
 
+banner "Frontend · lint (eslint, includes jsx-a11y)"
+( cd "${repo_root}/frontend" && pnpm exec eslint . ) || fail "Frontend · lint"
+
 banner "Frontend · vitest run"
 ( cd "${repo_root}/frontend" && pnpm exec vitest run ) || fail "Frontend · vitest"
 
-# E2E (Playwright) is intentionally NOT run here.
-# Rationale:
-#   - Real-browser E2E needs system libraries (libglib, libnss, …) that
-#     aren't always present on dev containers / Codespaces, and installing
-#     them requires sudo on every push.
-#   - The GitHub Actions workflow at .github/workflows/main-gate.yml runs
-#     E2E in a clean Ubuntu runner with --with-deps and is the authoritative
-#     gate. Branch-protection on the 'e2e' check keeps red E2E off main.
-# Opt in locally with LISTFORGE_PREPUSH_E2E=1 if your machine is set up.
-if [ "${LISTFORGE_PREPUSH_E2E:-0}" = "1" ]; then
-  banner "E2E      · playwright test (opt-in via LISTFORGE_PREPUSH_E2E=1)"
+# E2E (Playwright) runs by default. The axe-core/playwright a11y spec lives
+# here, so skipping E2E means a11y violations only get caught in CI — slower
+# feedback and a wider blast radius if you forget to wait for green.
+# Opt out with LISTFORGE_SKIP_PREPUSH_E2E=1 on machines where Chromium system
+# libraries (libglib, libnss, …) aren't installed (some dev containers /
+# Codespaces). CI is the authoritative gate either way.
+if [ "${LISTFORGE_SKIP_PREPUSH_E2E:-0}" = "1" ]; then
+  echo "pre-push: LISTFORGE_SKIP_PREPUSH_E2E=1 set — skipping E2E (CI still gates)." >&2
+else
+  banner "E2E      · playwright test (includes a11y.spec.ts)"
   playwright_bin="${repo_root}/frontend/node_modules/.bin/playwright"
   if [ ! -x "${playwright_bin}" ]; then
     ( cd "${repo_root}/frontend" && pnpm install --frozen-lockfile ) || fail "E2E · pnpm install"

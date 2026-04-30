@@ -29,7 +29,7 @@ jobs:
         run: dotnet test ListForge.sln --no-restore --nologo
 
   frontend:
-    name: frontend · typecheck + vitest
+    name: frontend · typecheck + lint + vitest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +52,9 @@ jobs:
       - name: Typecheck
         run: pnpm --dir frontend typecheck
 
+      - name: Lint (includes jsx-a11y)
+        run: pnpm --dir frontend lint
+
       - name: Vitest
         run: pnpm --dir frontend test
 
@@ -71,9 +74,14 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            pnpm-lock.yaml
 
-      - name: Install dependencies
+      - name: Install root dependencies (axe-core/playwright)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
         run: pnpm --dir frontend install --frozen-lockfile
 
       - name: Install Playwright browsers
