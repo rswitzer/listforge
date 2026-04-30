@@ -55,6 +55,7 @@
   },
 
   "mounts": [
-    "source=listforge-frontend-node-modules,target=/workspaces/listforge/frontend/node_modules,type=volume"
+    "source=listforge-frontend-node-modules,target=/workspaces/listforge/frontend/node_modules,type=volume",
+    "source=listforge-claude-home,target=/home/vscode/.claude,type=volume"
   ]
 }

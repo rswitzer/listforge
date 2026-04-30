@@ -20,13 +20,14 @@ pnpm --version
 echo "==> Restoring .NET solution"
 dotnet restore ListForge.sln
 
-echo "==> Fixing node_modules ownership (volume mounts come up as root)"
+echo "==> Fixing volume mount ownership (volumes come up as root)"
 sudo chown -R "$(id -u):$(id -g)" frontend/node_modules || true
+sudo chown -R "$(id -u):$(id -g)" "$HOME/.claude" || true
 
 echo "==> Installing frontend dependencies"
 (cd frontend && pnpm install --frozen-lockfile=false)
 
-echo "==> Installing Claude CLI"
-npm install -g @anthropic-ai/claude-cli
+echo "==> Installing Claude Code"
+npm install -g @anthropic-ai/claude-code
 
 echo "==> Done. Try: dotnet test ListForge.sln"
