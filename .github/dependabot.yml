@@ -1,11 +1,17 @@
 version: 2
 
+# Cooldown: wait 7 days after a release before opening an update PR. Catches
+# the case where a freshly published version is yanked or has a regression
+# patch within the first week.
+
 updates:
   - package-ecosystem: nuget
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     groups:
       nuget-minor-and-patch:
         update-types:
@@ -17,6 +23,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     groups:
       npm-minor-and-patch:
         update-types:
@@ -28,6 +36,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     groups:
       npm-root-minor-and-patch:
         update-types:
@@ -39,6 +49,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     groups:
       actions-minor-and-patch:
         update-types:
