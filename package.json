@@ -2,6 +2,7 @@
   "name": "listforge-tests-e2e",
   "private": true,
   "description": "Repo-root devDependencies for end-to-end specs under tests-e2e/. The application frontend lives in ./frontend.",
+  "packageManager": "pnpm@10.33.2",
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3"
   }
