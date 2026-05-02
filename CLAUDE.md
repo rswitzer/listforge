@@ -98,6 +98,9 @@ Every PR is gated on AA conformance across four layers: `eslint-plugin-jsx-a11y`
 
 **Always invoke the `a11y-reviewer` agent before declaring any frontend feature done.** This is non-negotiable, not "if it looks risky". The automated layers catch ~⅓ of WCAG; the agent reasons about the rest (color-only signaling, focus management, modal contracts, live regions, suppression justifications). Run it on the diff after the feature's tests are green and before reporting completion to the user. Skip only for backend-only or doc-only changes.
 
+### .gitignore stays current
+When you add a new dependency, tool, or feature that produces artifacts (build outputs, caches, logs, generated dirs) or accepts secrets via files (`.env`, `*.pem`, `credentials.json`, …), update `.gitignore` in the same change. The `.claude/hooks/check-gitignore.sh` PreToolUse hook **blocks** writes to secret-shaped paths and **warns** when a write lands at an artifact-shaped path that isn't already ignored; the matching `.claude/hooks/check-untracked-ignorable.sh` Stop hook re-scans untracked files at end-of-turn. Bypass with `LISTFORGE_SKIP_GITIGNORE_HOOK=1` only for one-off exploration, and verify the working tree afterwards with `git status --ignored`. The CI `secret-scan.yml` (gitleaks) is a post-commit backstop, not a substitute for keeping `.gitignore` correct.
+
 ## Suggested Build Order
 
 From `docs/architecture.md` §"Suggested Initial Build Order": scaffolding → config/secrets → auth boundary → Etsy connection → Shop Rules CRUD → Draft CRUD → draft images → generation → edit save → field regeneration → publish → existing-listing browse/edit → observability → cleanup.
