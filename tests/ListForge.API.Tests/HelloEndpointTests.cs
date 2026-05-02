@@ -1,16 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using ListForge.API.Tests.Fixtures;
 using ListForge.Contracts.Hello;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ListForge.API.Tests;
 
-public sealed class HelloEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HelloEndpointTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
 
-    public HelloEndpointTests(WebApplicationFactory<Program> factory)
+    public HelloEndpointTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
     }
