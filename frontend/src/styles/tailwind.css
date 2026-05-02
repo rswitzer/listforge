@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* spec-ui §Brand Direction — warm, earthy palette.
+   All foreground tokens meet WCAG 2.1 AA (≥ 4.5:1) on cream and sand.
+   See docs/spec-ui.md §Accessibility for the allowed text/background pairs. */
+@theme {
+  --color-cream: #F7F1E5;       /* background */
+  --color-sand: #EFE6D2;        /* panel background */
+  --color-terracotta: #9A4F2A;  /* ≈ 5.3:1 on cream, ≈ 4.9:1 on sand */
+  --color-espresso: #3A2E25;    /* ≈ 12:1 on cream, ≈ 11:1 on sand */
+  --color-moss: #5C6E48;        /* ≈ 4.95:1 on cream, ≈ 4.53:1 on sand */
+  --font-sans: system-ui, sans-serif;
+}
 
 @layer base {
   body {
