@@ -22,6 +22,8 @@
   },
 
   "postCreateCommand": ".devcontainer/post-create.sh",
+  "updateContentCommand": "(cd frontend && pnpm install --frozen-lockfile=false) && (cd frontend && pnpm exec playwright install chromium)",
+  "postStartCommand": ".devcontainer/ensure-claude.sh",
 
   "customizations": {
     "vscode": {
@@ -32,6 +34,7 @@
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
         "vitest.explorer",
+        "ms-playwright.playwright",
         "EditorConfig.EditorConfig"
       ],
       "settings": {

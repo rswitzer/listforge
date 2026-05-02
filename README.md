@@ -56,10 +56,12 @@ The repo ships with a devcontainer that includes .NET 9, Node 20, and pnpm. No h
 
 1. Install [Docker](https://www.docker.com/) and [VS Code](https://code.visualstudio.com/) with the **Dev Containers** extension.
 2. Open the repo folder in VS Code → command palette → **Dev Containers: Reopen in Container**.
-3. Wait for `post-create.sh` to finish (`dotnet restore` + `pnpm install`).
+3. Wait for `post-create.sh` to finish (`dotnet restore`, `pnpm install`, Chromium runtime libs + Xvfb via apt, and `playwright install chromium`).
 4. In the integrated terminal: `dotnet run --project src/ListForge.API`.
 5. In a second terminal: `cd frontend && pnpm dev`.
 6. VS Code auto-forwards ports 5050 and 5173. Open `http://localhost:5173` in your browser.
+
+When you pull a branch that changes `package.json` or `pnpm-lock.yaml`, VS Code will offer to rebuild — accept it. `updateContentCommand` re-runs `pnpm install` and `playwright install chromium` automatically, so new frontend deps land without manual steps.
 
 ### Option B — Devcontainers CLI (no VS Code)
 
@@ -82,6 +84,7 @@ To run the app: open two more shells and use `devcontainer exec --workspace-fold
 - Named volume on `frontend/node_modules` so the container's installs don't fight with the host's.
 - `ASPNETCORE_URLS=http://+:5050` and `vite.config.ts` `host: true` so both servers are reachable through the published ports.
 - Ports 5050 (API) and 5173 (Vite) auto-forwarded.
+- Playwright Chromium + its Linux runtime libs (libxcb, libgtk-3, libnss, …) are pre-installed; `pnpm exec playwright test` and the VS Code Playwright Test extension run out of the box.
 
 ## Quick start — Host machine
 

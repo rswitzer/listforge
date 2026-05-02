@@ -18,9 +18,18 @@ export default defineConfig({
     baseURL: `http://localhost:${PLAYWRIGHT_PORT}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    headless: true,
+    launchOptions: { headless: true },
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        headless: true,
+        launchOptions: { headless: true },
+      },
+    },
   ],
   webServer: {
     command: `pnpm exec vite --port ${PLAYWRIGHT_PORT} --strictPort`,

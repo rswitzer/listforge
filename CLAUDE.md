@@ -55,6 +55,8 @@ Tests must also be **green at end-of-turn**: the `.claude/hooks/run-affected-tes
 
 Test projects live under `/tests/ListForge.{Domain,Application,Infrastructure,API}.Tests`. Frontend component tests are co-located as `ComponentName.test.tsx`. End-to-end Playwright specs live under `tests-e2e/` and run in real Chromium (the Playwright config auto-starts the Vite dev server and the .NET API). Each user-facing **page** under `frontend/src/pages/` is required by `check-tdd.sh` to have both a sibling Vitest test and a matching `tests-e2e/<name>.spec.ts`. Frontend test infrastructure (custom `render`, jest-dom setup) lives under `frontend/src/test/`; canonical patterns are in `docs/testing.md`. Locked framework choices: xUnit + FluentAssertions + NSubstitute for backend, Vitest + React Testing Library for frontend components, Playwright for end-to-end. See `docs/architecture.md §Testing Strategy` for the full contract (test types per layer, Testcontainers for repos, no vendor-SDK mocking, coverage expectations, naming).
 
+The repo is a pnpm workspace (`pnpm-workspace.yaml` lists `frontend` as the only child package; the repo root is the workspace root). Run `pnpm install` from the repo root — it installs both root and `frontend/` deps into a single `.pnpm` content-addressable store at `node_modules/.pnpm/`. `@playwright/test` and `@axe-core/playwright` are declared in **both** the root `package.json` (so they resolve from `tests-e2e/*.spec.ts`, which lives outside `frontend/`) and `frontend/package.json` (so the Playwright runner and VS Code Playwright Test extension can resolve them from `frontend/playwright.config.ts`). The two versions MUST stay byte-identical and exact-pinned (no caret) — pnpm only dedupes to a single on-disk install and a single module instance when the specifiers match exactly. Bumping one side without the other produces two `@playwright/test` instances and Playwright fails fast with `Requiring @playwright/test second time`.
+
 ### Live verification with the Playwright MCP
 The repo ships an `.mcp.json` that registers the official `@playwright/mcp` server. After you approve it on first use (`claude mcp list`), the assistant can drive a real Chromium browser during a task — navigate routes, click controls, take screenshots, inspect the DOM. Use it to iterate on a feature until it visibly works, not just until tests pass. The dev server can be started in the background with `pnpm --dir frontend dev` and torn down at end-of-task.
 
@@ -104,6 +106,9 @@ From `docs/architecture.md` §"Suggested Initial Build Order": scaffolding → c
 
 The solution is scaffolded. All commands run from the repo root unless noted.
 
+### Onboarding (use the devcontainer)
+The devcontainer at `.devcontainer/` is the canonical dev path. From VS Code: command palette → **Dev Containers: Reopen in Container**. `postCreateCommand` runs `.devcontainer/post-create.sh` (restores .NET, runs `pnpm install`, apt-installs Chromium runtime libs + Xvfb, runs `playwright install chromium`). When you pull a branch that changes `package.json`/`pnpm-lock.yaml`, accept the rebuild prompt — `updateContentCommand` re-runs `pnpm install` and `playwright install chromium` automatically. Inside the devcontainer there is no need to run `npx playwright install` or set `LISTFORGE_SKIP_PREPUSH_E2E`.
+
 ### Toolchain
 - .NET 9 SDK (`net9.0`). The user-space install lives at `~/.dotnet`.
 - Node 20 LTS via nvm (`~/.nvm`). pnpm via Corepack.
@@ -133,7 +138,7 @@ The PostToolUse hook at `.claude/hooks/check-lint.sh` runs after each Write/Edit
 ### Push gate (block pushes to `main` on red tests)
 Two layers protect `main`:
 
-- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, `pnpm lint` (jsx-a11y errors block here), `pnpm test` (includes vitest-axe), and `playwright test` (includes the axe-core e2e a11y spec) whenever the push would update `refs/heads/main`. Other branches push freely. E2E runs by default; opt out with `LISTFORGE_SKIP_PREPUSH_E2E=1 git push` on machines where Chromium system libs (libglib, libnss, …) aren't installed (some dev containers / Codespaces). Enable the hook once after cloning:
+- **Local pre-push hook** at `.githooks/pre-push`. Runs `dotnet test ListForge.sln`, `pnpm typecheck`, `pnpm lint` (jsx-a11y errors block here), `pnpm test` (includes vitest-axe), and `playwright test` (includes the axe-core e2e a11y spec) whenever the push would update `refs/heads/main`. Other branches push freely. E2E runs by default and is expected to pass inside the listforge devcontainer (Chromium libs are pre-installed via `post-create.sh`). The `LISTFORGE_SKIP_PREPUSH_E2E=1 git push` opt-out is intended for non-listforge containers / vanilla Codespaces where libglib, libnss, … aren't on the system. Enable the hook once after cloning:
   ```
   ./scripts/setup-hooks.sh
   ```
