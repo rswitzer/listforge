@@ -1,22 +1,15 @@
-import { Route, Routes } from 'react-router-dom';
-import { HelloPanel } from './components/HelloPanel';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { HealthPage } from './pages/HealthPage';
-
-function HomeShell() {
-  return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-xl w-full bg-sand rounded-2xl shadow-sm p-10 text-center">
-        <HelloPanel />
-      </div>
-    </main>
-  );
-}
+import { OnboardingWelcomePage } from './pages/OnboardingWelcomePage';
+import { SignupPage } from './pages/SignupPage';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomeShell />} />
+      <Route path="/" element={<Navigate to="/signup" replace />} />
       <Route path="/health" element={<HealthPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/onboarding/welcome" element={<OnboardingWelcomePage />} />
     </Routes>
   );
 }

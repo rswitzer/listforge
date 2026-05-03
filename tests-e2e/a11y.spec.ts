@@ -10,20 +10,14 @@ import { checkA11y } from './utils/a11y';
 // entry here. The check-tdd hook requires a per-page e2e spec, but it does
 // NOT enforce floor a11y coverage — that's owned by this list.
 const ROUTES: Array<{ name: string; path: string }> = [
-  { name: 'home', path: '/' },
   { name: 'health', path: '/health' },
+  { name: 'signup', path: '/signup' },
+  { name: 'onboarding-welcome', path: '/onboarding/welcome' },
 ];
 
 test.describe('accessibility (WCAG 2.1 AA)', () => {
   for (const route of ROUTES) {
     test(`${route.name} (${route.path}) has no axe violations`, async ({ page }) => {
-      await page.route('**/api/hello', (r) =>
-        r.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ message: 'Hello, ListForge!' }),
-        }),
-      );
       await page.route('**/api/health', (r) =>
         r.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"ok"}' }),
       );
@@ -38,13 +32,17 @@ test.describe('accessibility (WCAG 2.1 AA)', () => {
     });
   }
 
-  // The error state surfaces text in `terracotta` on `sand`. Contrast lives or
-  // dies here, so the error path gets its own scan independent of the route loop.
-  test('home (/) error state has no axe violations', async ({ page }) => {
-    await page.route('**/api/hello', (r) => r.fulfill({ status: 500, body: '' }));
+  test('signup (/signup) duplicate-email error state has no axe violations', async ({ page }) => {
+    await page.route('**/api/auth/register', (r) =>
+      r.fulfill({ status: 409, contentType: 'application/json', body: '' }),
+    );
 
-    await page.goto('/');
-    await page.getByText(/couldn't reach the server/i).waitFor();
+    await page.goto('/signup');
+    await page.getByLabel(/^email$/i).fill('taken@example.com');
+    await page.getByLabel(/^password$/i).fill('password123');
+    await page.getByLabel(/^confirm password$/i).fill('password123');
+    await page.getByRole('button', { name: /create account/i }).click();
+    await page.getByText(/already registered/i).waitFor();
 
     await checkA11y(page);
   });

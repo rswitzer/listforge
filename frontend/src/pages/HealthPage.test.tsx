@@ -79,9 +79,14 @@ describe('HealthPage', () => {
 
     const { user } = render(<HealthPage />);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    // Wait for the page to settle: the button text flips from "Checking…" to
+    // "Check again" only after both probes resolve and state updates flush.
+    // Asserting on button text is more robust than asserting on fetchMock
+    // call count (which increments on call, not on resolution).
+    const refreshButton = await screen.findByRole('button', { name: /check again/i });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    await user.click(screen.getByRole('button', { name: /check again/i }));
+    await user.click(refreshButton);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
   });
