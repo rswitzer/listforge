@@ -240,6 +240,17 @@ Requirements:
 - Show current wizard step.
 - Support resume and delete.
 
+### F9 — Public Landing Page
+A short, public-facing page at `/` that explains what ListForge does in one line and invites visitors to register. Replaces the previous `/` → `/signup` redirect so a visitor sees what the product is before being asked to sign up.
+
+Requirements:
+- Visible to unauthenticated visitors. Authenticated routing/redirects are out of scope until sign-in exists.
+- Single primary CTA labelled "Create your account" linking to `/signup`. A login link is intentionally deferred until sign-in ships.
+- Content is limited to a hero (headline + one-sentence subheadline + CTA) and a "How it works" section with three plain-language steps (upload photos, describe in a sentence, review and publish).
+- Tone follows `docs/spec-ui.md` — warm, plain-English, no SEO/marketing jargon, no claims about pricing or feature scope that the PRD has not committed to.
+- Accessibility: meets WCAG 2.1 AA. Single `<h1>`, single `<main>` landmark, axe-clean in tests.
+- Copy and visual treatment may evolve; the contract is the route, the CTA destination, and the absence of a login link until sign-in ships.
+
 ***
 
 ## AI Architecture

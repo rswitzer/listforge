@@ -127,6 +127,30 @@ Recommended persistent navigation items:
 - Shop Rules
 - Settings
 
+## Landing Page
+
+### Goal
+Give an unauthenticated visitor a one-screen, plain-language explanation of what ListForge does and a single path forward to register. Covered by PRD F9.
+
+### Route
+`/` — the public, unauthenticated entry point.
+
+### Layout
+Single screen, no app chrome. Two stacked sections inside one card:
+1. **Hero** — `<h1>` headline, one-sentence subheadline, single primary CTA.
+2. **How it works** — `<h2>` followed by an ordered list of three short steps.
+
+No secondary CTA, no footer, no login link. A login entry point will be added once sign-in is a user-facing flow; until then, omitting it keeps visitors from dead-ending.
+
+### Copy
+- Headline: "Better Etsy listings, from a photo and a few words."
+- Subheadline: "Built for independent makers — sign up in under a minute."
+- Steps: "Upload photos of your item." / "Describe it in a sentence." / "Review and publish to Etsy."
+- Primary CTA: "Create your account" — matches the destination page's `<h1>` exactly so visitors see the next step they expected.
+
+### Tone
+Warm, practical, calm. No pricing claims (e.g. avoid "free") until the PRD commits to a pricing model. No marketing buzzwords ("AI-powered", "supercharge"), no SEO jargon.
+
 ## Onboarding
 
 ### Goal

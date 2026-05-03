@@ -10,6 +10,7 @@ import { checkA11y } from './utils/a11y';
 // entry here. The check-tdd hook requires a per-page e2e spec, but it does
 // NOT enforce floor a11y coverage — that's owned by this list.
 const ROUTES: Array<{ name: string; path: string }> = [
+  { name: 'landing', path: '/' },
   { name: 'health', path: '/health' },
   { name: 'signup', path: '/signup' },
   { name: 'onboarding-welcome', path: '/onboarding/welcome' },
