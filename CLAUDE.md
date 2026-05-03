@@ -126,7 +126,7 @@ The devcontainer at `.devcontainer/` is the canonical dev path. From VS Code: co
 ### Backend
 - `dotnet build ListForge.sln` — restore + compile all 9 projects.
 - `dotnet test ListForge.sln` — run all xUnit projects. `AuthControllerTests` use Testcontainers and skip cleanly when Docker isn't available.
-- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Auto-applies pending EF migrations on startup in Development. Endpoints: `GET /api/health`, `GET /api/health/db`, `GET /api/hello`, `POST /api/auth/{register,login,refresh}`.
+- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Auto-applies pending EF migrations on startup in Development. Endpoints: `GET /api/health`, `GET /api/health/db`, `POST /api/auth/{register,login,refresh}`.
 - `dotnet ef migrations add <Name> --project src/ListForge.Infrastructure --startup-project src/ListForge.API --output-dir Persistence/Migrations` — generate a new migration after a model change.
 
 ### Frontend

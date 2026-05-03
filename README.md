@@ -2,7 +2,7 @@
 
 A web app that helps independent Etsy sellers (initial wedge: jewelry makers) generate SEO-optimized listings from photos plus a short prompt. Reusable per-shop guidance profiles ("Shop Rules") are applied at generation time. Target user is non-technical; flows are wizard-driven and copy stays plain-language.
 
-> **Status:** project scaffolding only. The five backend projects, four test projects, and the Vite + React frontend are wired and produce a working hello-world page. v1 features (F1–F8) are not implemented yet.
+> **Status:** project scaffolding only. The five backend projects, four test projects, and the Vite + React frontend are wired together. v1 features (F1–F8) are not implemented yet.
 
 ## Source of truth
 
@@ -41,9 +41,8 @@ tests/
   ListForge.Domain.Tests
   ListForge.Application.Tests
   ListForge.Infrastructure.Tests
-  ListForge.API.Tests       (HelloEndpointTests is the canary)
+  ListForge.API.Tests
 frontend/
-  src/components/HelloPanel.tsx + HelloPanel.test.tsx (TDD canary)
   src/App.tsx, src/main.tsx
 .claude/
   agents/                   PR-time review agents
@@ -133,7 +132,7 @@ dotnet run --project src/ListForge.API
 cd frontend && pnpm dev
 ```
 
-Open `http://localhost:5173` in a browser. You should see "Hello, ListForge!" on a cream-colored card.
+Open `http://localhost:5173` in a browser.
 
 ## Common commands
 
@@ -190,7 +189,6 @@ See `docs/architecture.md` and `docs/spec-ui.md` for the full set.
 | --- | --- | --- |
 | GET | `/api/health` | `{ "status": "ok" }` (process liveness, no DB) |
 | GET | `/api/health/db` | `200 Healthy` / `503 Unhealthy` (Postgres reachability) |
-| GET | `/api/hello` | `{ "message": "Hello, ListForge!" }` |
 | POST | `/api/auth/register` | `201` + `{ accessToken, refreshToken, … }` |
 | POST | `/api/auth/login` | `200` + token pair, `401` on invalid credentials |
 | POST | `/api/auth/refresh` | `200` + rotated token pair, `401` if the refresh token is unknown / revoked / expired |

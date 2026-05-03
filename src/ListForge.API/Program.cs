@@ -1,5 +1,4 @@
 using System.Text;
-using ListForge.Contracts.Hello;
 using ListForge.Domain.Identity;
 using ListForge.Domain.Storage;
 using ListForge.Infrastructure.Configuration;
@@ -106,7 +105,6 @@ app.MapHealthChecks("/api/health/db", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("db"),
 });
-app.MapGet("/api/hello", () => Results.Ok(new HelloResponse("Hello, ListForge!")));
 app.MapControllers();
 
 app.Run();

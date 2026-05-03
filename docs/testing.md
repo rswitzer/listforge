@@ -171,7 +171,7 @@ tests-e2e/
 ```bash
 pnpm --dir frontend e2e            # headless, single run
 pnpm --dir frontend e2e:ui         # interactive UI
-pnpm --dir frontend exec playwright test tests-e2e/hello.spec.ts   # one file
+pnpm --dir frontend exec playwright test tests-e2e/signuppage.spec.ts   # one file
 ```
 
 Failing runs save traces and screenshots under `frontend/test-results/`. An
