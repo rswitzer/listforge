@@ -46,13 +46,13 @@ Initial target users:
 | Backend | ASP.NET Core (C#) | REST API |
 | ORM | Entity Framework Core | Code-first migrations |
 | CQRS | Simple CQRS + MediatR | Commands/queries, pipeline behaviors |
-| Database | Supabase (Postgres) | Abstracted via repository pattern |
-| File Storage | Supabase Storage | Abstracted via storage interface |
-| Auth | Supabase Auth | Abstracted via auth interface |
+| Database | Postgres (self-hosted dev via docker compose; prod host TBD) | Abstracted via per-aggregate repositories |
+| File Storage | `LocalFileStorage` (dev); prod host TBD | Abstracted via `IFileStorage` |
+| Auth | ASP.NET Core Identity + symmetric-key JWT | Abstracted via `ICurrentUserAccessor` / `IJwtTokenIssuer` |
 | AI | Claude (Anthropic) | Abstracted via AI service interface |
 | Etsy | Etsy API v3 | Abstracted via anti-corruption layer |
 
-All external vendors are hidden behind interfaces in the Domain/Application layers. Infrastructure implementations are swappable.
+All external vendors are hidden behind interfaces in the Domain/Application layers. Infrastructure implementations are swappable. Production hosts for the database and file storage are deliberately deferred — the dev stack runs entirely in `docker compose` so we can build feature work without picking a paid-tier vendor before we need to.
 
 ***
 
@@ -68,7 +68,7 @@ Start as a **modular monolith** using Domain-Driven Design. Bounded contexts are
   /ListForge.API              - ASP.NET Core entry point, controllers, middleware
   /ListForge.Application      - Use cases, commands, queries (CQRS via MediatR)
   /ListForge.Domain           - Aggregates, value objects, domain events, interfaces
-  /ListForge.Infrastructure   - Supabase, Claude, Etsy API implementations
+  /ListForge.Infrastructure   - EF Core (Postgres), Identity, file storage, Claude, Etsy implementations
   /ListForge.Contracts        - DTOs, API request/response models
 /frontend
   /src                        - React application (Vite)
@@ -311,8 +311,8 @@ Recommended tone:
 
 | Question | Decision |
 |----------|----------|
-| Auth system | Supabase Auth (abstracted) |
-| Shop Rules storage | Supabase Postgres (abstracted via repository) |
+| Auth system | ASP.NET Core Identity + symmetric-key JWT (self-hosted, abstracted) |
+| Shop Rules storage | Postgres via EF Core (abstracted via per-aggregate repository) |
 | Low-confidence materials | Leave blank, user fills in |
 | Re-generation | Included in v1, both full listing and field-level |
 | Shop Rules profiles | Multiple per user |

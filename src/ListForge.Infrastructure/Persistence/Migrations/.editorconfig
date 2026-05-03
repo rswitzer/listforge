@@ -1,0 +1,6 @@
+# EF Core generates migrations with framework-style class/namespace shapes
+# (Initial_Identity, block-scoped namespaces). Suppress the style rules that
+# would otherwise treat the generated code as compile errors.
+[*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.IDE0161.severity = none

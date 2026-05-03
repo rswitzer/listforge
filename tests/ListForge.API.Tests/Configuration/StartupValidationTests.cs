@@ -73,9 +73,11 @@ public sealed class StartupValidationTests
 
     private static readonly Dictionary<string, string?> _validConfiguration = new()
     {
-        ["Auth:SupabaseUrl"] = "https://example.supabase.co",
+        ["Auth:Issuer"] = "ListForge",
+        ["Auth:Audience"] = "listforge-api",
         ["Auth:JwtSecret"] = "test-jwt-secret-32-chars-minimum-x",
         ["Database:ConnectionString"] = "Host=localhost;Database=listforge_test;Username=test;Password=test",
+        ["Storage:RootPath"] = "./.local-storage-test",
         ["Frontend:AllowedOrigins:0"] = "http://localhost:5173",
     };
 

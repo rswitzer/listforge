@@ -8,41 +8,43 @@ namespace ListForge.Infrastructure.Tests.Configuration;
 
 public sealed class AuthOptionsTests
 {
+    private const string ValidSecret = "test-jwt-secret-32-chars-minimum-x";
+
     [Fact]
     public void Bind_AllRequiredFieldsProvided_ReturnsPopulatedOptions()
     {
         // Arrange
         var provider = BuildProviderWith(new Dictionary<string, string?>
         {
-            ["Auth:SupabaseUrl"] = "https://example.supabase.co",
-            ["Auth:JwtSecret"] = "test-jwt-secret-32-chars-minimum-x",
-            ["Auth:Audience"] = "authenticated",
+            ["Auth:Issuer"] = "ListForge",
+            ["Auth:Audience"] = "listforge-api",
+            ["Auth:JwtSecret"] = ValidSecret,
         });
 
         // Act
         var options = provider.GetRequiredService<IOptions<AuthOptions>>().Value;
 
         // Assert
-        options.SupabaseUrl.Should().Be("https://example.supabase.co");
-        options.JwtSecret.Should().Be("test-jwt-secret-32-chars-minimum-x");
-        options.Audience.Should().Be("authenticated");
+        options.Issuer.Should().Be("ListForge");
+        options.Audience.Should().Be("listforge-api");
+        options.JwtSecret.Should().Be(ValidSecret);
     }
 
     [Fact]
-    public void Bind_AudienceOmitted_DefaultsToAuthenticated()
+    public void Bind_OptionalFieldsOmitted_DefaultsApplied()
     {
         // Arrange
         var provider = BuildProviderWith(new Dictionary<string, string?>
         {
-            ["Auth:SupabaseUrl"] = "https://example.supabase.co",
-            ["Auth:JwtSecret"] = "test-jwt-secret-32-chars-minimum-x",
+            ["Auth:JwtSecret"] = ValidSecret,
         });
 
         // Act
         var options = provider.GetRequiredService<IOptions<AuthOptions>>().Value;
 
         // Assert
-        options.Audience.Should().Be("authenticated");
+        options.Issuer.Should().Be("ListForge");
+        options.Audience.Should().Be("listforge-api");
     }
 
     [Fact]
@@ -51,7 +53,7 @@ public sealed class AuthOptionsTests
         // Arrange
         var provider = BuildProviderWith(new Dictionary<string, string?>
         {
-            ["Auth:SupabaseUrl"] = "https://example.supabase.co",
+            ["Auth:Issuer"] = "ListForge",
         });
 
         // Act
@@ -63,29 +65,11 @@ public sealed class AuthOptionsTests
     }
 
     [Fact]
-    public void Bind_MissingSupabaseUrl_ThrowsOptionsValidationException()
-    {
-        // Arrange
-        var provider = BuildProviderWith(new Dictionary<string, string?>
-        {
-            ["Auth:JwtSecret"] = "test-jwt-secret-32-chars-minimum-x",
-        });
-
-        // Act
-        var act = () => provider.GetRequiredService<IOptions<AuthOptions>>().Value;
-
-        // Assert
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*SupabaseUrl*");
-    }
-
-    [Fact]
     public void Bind_EmptyJwtSecret_ThrowsOptionsValidationException()
     {
         // Arrange
         var provider = BuildProviderWith(new Dictionary<string, string?>
         {
-            ["Auth:SupabaseUrl"] = "https://example.supabase.co",
             ["Auth:JwtSecret"] = string.Empty,
         });
 
@@ -95,6 +79,41 @@ public sealed class AuthOptionsTests
         // Assert
         act.Should().Throw<OptionsValidationException>()
             .WithMessage("*JwtSecret*");
+    }
+
+    [Fact]
+    public void Bind_JwtSecretShorterThan32Chars_ThrowsOptionsValidationException()
+    {
+        // Arrange — HMAC-SHA256 keys must be at least 32 bytes; we enforce that as a min length.
+        var provider = BuildProviderWith(new Dictionary<string, string?>
+        {
+            ["Auth:JwtSecret"] = "too-short",
+        });
+
+        // Act
+        var act = () => provider.GetRequiredService<IOptions<AuthOptions>>().Value;
+
+        // Assert
+        act.Should().Throw<OptionsValidationException>()
+            .WithMessage("*JwtSecret*");
+    }
+
+    [Fact]
+    public void Bind_EmptyIssuer_ThrowsOptionsValidationException()
+    {
+        // Arrange
+        var provider = BuildProviderWith(new Dictionary<string, string?>
+        {
+            ["Auth:Issuer"] = string.Empty,
+            ["Auth:JwtSecret"] = ValidSecret,
+        });
+
+        // Act
+        var act = () => provider.GetRequiredService<IOptions<AuthOptions>>().Value;
+
+        // Assert
+        act.Should().Throw<OptionsValidationException>()
+            .WithMessage("*Issuer*");
     }
 
     private static ServiceProvider BuildProviderWith(IDictionary<string, string?> values)

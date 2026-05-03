@@ -49,3 +49,6 @@ Thumbs.db
 !.env.example
 appsettings.*.Local.json
 *.user.json
+
+# Local file storage (dev IFileStorage root)
+.local-storage/

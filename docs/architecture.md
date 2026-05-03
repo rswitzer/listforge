@@ -23,7 +23,7 @@ The goal is to build a clean modular monolith with strong boundaries, low operat
 - No microservice deployment.
 - No event-driven architecture.
 - No workflow orchestration platform.
-- No frontend coupling to Supabase, Etsy SDKs, or AI providers.
+- No frontend coupling to Etsy SDKs, AI providers, or any backend persistence layer.
 - No version-history system for drafts, Shop Rules, or generated content.
 - No generic framework-heavy abstractions that reduce clarity.
 
@@ -55,7 +55,8 @@ For v1, deployment should be simple.
 Recommended approach:
 - Deploy the ASP.NET Core API as a single service.
 - Deploy the React frontend separately as a static web app or simple frontend host.
-- Use managed Postgres and object storage through the current infrastructure provider.
+- Run Postgres locally via `docker compose` for development; production host is deferred (Neon / Render / Railway free tiers all fit when we're ready).
+- Run `LocalFileStorage` against a working-directory volume in development; production object storage is deferred (Cloudflare R2 / S3-compatible behind the same `IFileStorage` interface).
 - Do not require Kubernetes for v1.
 
 Portability requirement:
@@ -106,9 +107,9 @@ Recommended solution structure:
 - Business rules that should not live in controllers or infrastructure.
 
 #### ListForge.Infrastructure
-- Database persistence.
-- File storage.
-- Auth provider implementation.
+- Database persistence (EF Core + Npgsql).
+- File storage (`LocalFileStorage` in dev; cloud-backed implementations later).
+- Auth implementation (ASP.NET Core Identity + `JwtTokenIssuer`).
 - AI provider implementation.
 - Etsy API implementation.
 - Encryption and secrets-adjacent service implementations.
@@ -169,15 +170,16 @@ If future async support is needed, add a `GenerationJob` abstraction later witho
 ## Authentication and Authorization
 
 ### Core rule
-The frontend must never talk directly to Supabase or any underlying auth implementation.
+The frontend must never talk directly to any auth implementation. It calls `/api/auth/*` on the ListForge backend and treats the issued JWT as opaque.
 
 ### Recommended model
 - The frontend authenticates only against the ListForge backend.
-- The backend owns auth verification and session/token validation.
-- Any concrete auth provider is hidden behind interfaces in Infrastructure.
+- The backend owns auth verification and session/token validation. v1 issues symmetric-key JWTs from `JwtTokenIssuer`, validated by the standard `JwtBearer` middleware.
+- ASP.NET Core Identity stores users + password hashes in our Postgres via `ListForgeDbContext`.
+- Refresh tokens are persisted hashed (SHA-256) in the `RefreshTokens` table; rotation revokes the previous record on use.
 
 ### Guidance
-- Do not expose Supabase-specific concepts to the frontend.
+- Do not expose Identity-specific concepts to the frontend.
 - Do not build frontend logic that depends on provider-specific token claims beyond what the backend contract exposes.
 - Controllers and application handlers should work with an application-level current-user abstraction.
 
@@ -262,7 +264,7 @@ Implementation note:
 - Centralize image lifecycle rules in an application service, not controllers.
 
 Recommended interface examples:
-- `IFileStorageService`
+- `IFileStorage` (already in Domain; backed by `LocalFileStorage` in dev)
 - `IDraftImageService`
 
 ## Domain Modeling Guidance
@@ -563,6 +565,31 @@ At minimum, capture enough to answer:
 
 Distributed tracing is optional in v1, but request correlation should exist.
 
+## Health Checks and Readiness
+
+Every external dependency the API depends on must be observable through a single, predictable surface so that operators — and the dev team during local diagnosis — can answer "what's broken?" without reading logs.
+
+### Two layers
+1. **Backend probes.** Each external dependency gets a tagged ASP.NET Core health check registered in `Program.cs` via `AddHealthChecks().AddCheck<T>(name, tags: ["<dep-name>"])`. Each tag is then mapped to its own URL: `MapHealthChecks("/api/health/<dep-name>", new HealthCheckOptions { Predicate = c => c.Tags.Contains("<dep-name>") })`.
+2. **Frontend `/health` page.** A public page renders one card per dependency by calling each `/api/health/<dep-name>`. The page is the visible contract: if you add a backend probe, you add a card; if you add an integration, you add both.
+
+### Probe rules
+- Probes must be safe to call without authentication. They must not return PII, secrets, or stack traces, and must not mutate state.
+- Probes must time out within ~2 seconds so a slow dependency does not stall the dashboard.
+- The shallow liveness endpoint at `/api/health` answers "is the process alive?" and must never depend on any dependency. It exists separately from `/api/health/<dep-name>` and stays untagged.
+- Map a per-tag URL alongside the global `/health` aggregate so operators can probe a single dependency in isolation.
+
+### When adding a new external integration (Claude, Etsy, future storage/email/etc.)
+1. Add the corresponding `IExternalService<T>` interface in Domain.
+2. Register the implementation's health check in `Program.cs` with a tag matching the dependency name (e.g., `claude`, `etsy`, `storage`).
+3. Map `/api/health/<name>` via the same predicate pattern used for `db`.
+4. Render a card for the new dependency on `HealthPage.tsx` with friendly labels (per `docs/spec-ui.md` tone rules).
+5. Add at least one integration test covering the probe in both healthy and degraded states.
+6. PR review treats a missing card or a missing per-tag endpoint as a regression.
+
+### Currently registered probes
+- **Postgres** — tag `db`, exposed at `/api/health/db`.
+
 ## Configuration and Secrets
 
 A formal configuration model is required.
@@ -719,7 +746,7 @@ All backend tests follow AAA structure, with blank lines or `// Arrange` / `// A
 10. Field regeneration.
 11. Publish to Etsy.
 12. Existing Etsy listing browse/edit.
-13. Observability hardening.
+13. Observability hardening (and a health probe per integration — see §Health Checks and Readiness).
 14. Cleanup and architectural refactoring.
 
 ## Decision Log
@@ -727,7 +754,7 @@ All backend tests follow AAA structure, with blank lines or `// Arrange` / `// A
 ### Locked decisions from this session
 - Use REST only for v1.
 - Keep the architecture as simple as possible for v1.
-- Frontend must not talk directly to Supabase or any provider implementation.
+- Frontend must not talk directly to the database or any provider implementation.
 - Use interfaces and dependency injection to hide infrastructure providers.
 - Store drafts as first-class records.
 - No versioning/history for v1.

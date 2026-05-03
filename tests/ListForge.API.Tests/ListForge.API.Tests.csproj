@@ -7,10 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Xunit.SkippableFact" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
@@ -18,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ListForge.API\ListForge.API.csproj" />
     <ProjectReference Include="..\..\src\ListForge.Contracts\ListForge.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\ListForge.Infrastructure\ListForge.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

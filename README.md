@@ -17,14 +17,16 @@ If a feature isn't covered in those docs, stop and ask before inventing product 
 
 | Layer | Tech |
 | --- | --- |
-| Backend | ASP.NET Core 9 (`net9.0`), MediatR (later), EF Core (later) |
+| Backend | ASP.NET Core 9 (`net9.0`), EF Core 9 on Postgres, MediatR (added when first use case appears) |
 | Frontend | React 18 + Vite + TypeScript + Tailwind |
-| Tests | xUnit + FluentAssertions + NSubstitute (backend); Vitest + React Testing Library (frontend components); Playwright (end-to-end, Chromium) |
-| Auth / DB / Storage | Supabase, abstracted behind interfaces in `Domain` |
+| Tests | xUnit + FluentAssertions + NSubstitute + Testcontainers (backend); Vitest + React Testing Library (frontend components); Playwright (end-to-end, Chromium) |
+| Auth | ASP.NET Core Identity + symmetric-key JWT (issuance/validation in our backend), abstracted via `ICurrentUserAccessor` and `IJwtTokenIssuer` |
+| Database | Postgres — dev runs in `docker compose` (devcontainer attaches to the same network); production host deferred |
+| Storage | `LocalFileStorage` for dev; cloud-backed `IFileStorage` deferred until needed |
 | AI | Claude (Anthropic), behind `IImageAnalysisService` / `IListingGenerationService` |
 | Etsy | Etsy API v3, behind a dedicated integration boundary |
 
-External vendor SDKs only ever live in `ListForge.Infrastructure`. The frontend never talks to Supabase, Anthropic, or Etsy directly.
+External vendor SDKs only ever live in `ListForge.Infrastructure`. The frontend never talks to Anthropic or Etsy directly, and never reaches the database.
 
 ## Project structure
 
@@ -33,7 +35,7 @@ src/
   ListForge.API             ASP.NET Core entry point, controllers, DI
   ListForge.Application     Use cases, MediatR handlers, validation
   ListForge.Domain          Aggregates, value objects, repository contracts
-  ListForge.Infrastructure  Vendor implementations (Supabase, Claude, Etsy)
+  ListForge.Infrastructure  EF Core + Identity, JWT issuance, local file storage, Claude, Etsy
   ListForge.Contracts       API request/response DTOs
 tests/
   ListForge.Domain.Tests
@@ -50,16 +52,20 @@ frontend/
 
 ## Quick start — Dev Container (recommended)
 
-The repo ships with a devcontainer that includes .NET 9, Node 20, and pnpm. No host-machine installs required beyond Docker.
+The repo ships with a compose-based devcontainer. Two services come up together: a `workspace` container with .NET 9 + Node 20 + pnpm, and a sibling `postgres` (16-alpine) container — they share a Docker network so the API talks to `postgres:5432` directly. No host-machine installs required beyond Docker.
 
 ### Option A — VS Code
 
 1. Install [Docker](https://www.docker.com/) and [VS Code](https://code.visualstudio.com/) with the **Dev Containers** extension.
 2. Open the repo folder in VS Code → command palette → **Dev Containers: Reopen in Container**.
-3. Wait for `post-create.sh` to finish (`dotnet restore`, `pnpm install`, Chromium runtime libs + Xvfb via apt, and `playwright install chromium`).
-4. In the integrated terminal: `dotnet run --project src/ListForge.API`.
-5. In a second terminal: `cd frontend && pnpm dev`.
-6. VS Code auto-forwards ports 5050 and 5173. Open `http://localhost:5173` in your browser.
+3. Wait for `post-create.sh` to finish (`dotnet restore`, `dotnet tool restore` for `dotnet-ef`, `pnpm install`, Chromium runtime libs + Xvfb via apt, and `playwright install chromium`).
+4. Set the JWT signing secret once via user-secrets:
+   ```
+   dotnet user-secrets set Auth:JwtSecret "$(openssl rand -hex 32)" --project src/ListForge.API
+   ```
+5. In the integrated terminal: `dotnet run --project src/ListForge.API` (auto-applies EF migrations against the compose `postgres` on first run).
+6. In a second terminal: `cd frontend && pnpm dev`.
+7. VS Code auto-forwards ports 5050 and 5173. Open `http://localhost:5173` in your browser.
 
 When you pull a branch that changes `package.json` or `pnpm-lock.yaml`, VS Code will offer to rebuild — accept it. `updateContentCommand` re-runs `pnpm install` and `playwright install chromium` automatically, so new frontend deps land without manual steps.
 
@@ -80,10 +86,12 @@ To run the app: open two more shells and use `devcontainer exec --workspace-fold
 ### What's wired
 
 - Base image: `mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm`.
+- Sibling `postgres:16-alpine` service in `compose.yaml`, reachable as `postgres:5432`. Data persists across rebuilds in a named volume.
+- `docker-outside-of-docker` feature so Testcontainers (used by `AuthControllerTests`) can spin up its own containers from inside the workspace.
 - Node 20 + pnpm via the official `ghcr.io/devcontainers/features/node` feature.
-- Named volume on `frontend/node_modules` so the container's installs don't fight with the host's.
+- Named volumes on `frontend/node_modules` and `~/.claude` so the container's state survives rebuilds without fighting with the host's.
 - `ASPNETCORE_URLS=http://+:5050` and `vite.config.ts` `host: true` so both servers are reachable through the published ports.
-- Ports 5050 (API) and 5173 (Vite) auto-forwarded.
+- Ports 5050 (API) and 5173 (Vite) auto-forwarded; Postgres stays on the compose network only.
 - Playwright Chromium + its Linux runtime libs (libxcb, libgtk-3, libnss, …) are pre-installed; `pnpm exec playwright test` and the VS Code Playwright Test extension run out of the box.
 
 ## Quick start — Host machine
@@ -169,7 +177,7 @@ The repo ships an `.mcp.json` registering Microsoft's official Playwright MCP se
 - TDD is mandatory. Write the failing test first.
 - One repository per aggregate root (`IListingDraftRepository`, never `IRepository<T>`).
 - Every list/read/update/delete is user-scoped (`ICurrentUserAccessor`).
-- Vendor SDKs (Supabase, Anthropic, Etsy) only inside `ListForge.Infrastructure`.
+- Vendor SDKs (Anthropic, Etsy) and infrastructure-shaped concerns (EF Core, Identity, JWT issuance, file storage) only inside `ListForge.Infrastructure`.
 - v1 has **no** versioning, **no** domain events, **no** job queues, **no** rules engine — `docs/architecture.md §Non-Goals` is the canonical list.
 - UI copy uses friendly language. "Shop Rules", not "Guardrail Profiles". "Create Listing", not "Generate Listing".
 - Frontend test patterns (custom `render`, role-first queries, AI-surface assertions, copy rule) are in [`docs/testing.md`](./docs/testing.md).
@@ -180,5 +188,9 @@ See `docs/architecture.md` and `docs/spec-ui.md` for the full set.
 
 | Verb | Route | Returns |
 | --- | --- | --- |
-| GET | `/api/health` | `{ "status": "ok" }` |
+| GET | `/api/health` | `{ "status": "ok" }` (process liveness, no DB) |
+| GET | `/api/health/db` | `200 Healthy` / `503 Unhealthy` (Postgres reachability) |
 | GET | `/api/hello` | `{ "message": "Hello, ListForge!" }` |
+| POST | `/api/auth/register` | `201` + `{ accessToken, refreshToken, … }` |
+| POST | `/api/auth/login` | `200` + token pair, `401` on invalid credentials |
+| POST | `/api/auth/refresh` | `200` + rotated token pair, `401` if the refresh token is unknown / revoked / expired |

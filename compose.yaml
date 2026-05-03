@@ -1,6 +1,41 @@
-# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+# Compose drives both the production-style API container and the dev workspace
+# (devcontainer attaches to the `workspace` service so it shares a network with
+# `postgres`). Refer https://aka.ms/HTTPSinContainer for HTTPS dev certs.
 
 services:
+  workspace:
+    image: listforge-workspace
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    volumes:
+      - .:/workspaces/listforge:cached
+      - listforge-frontend-node-modules:/workspaces/listforge/frontend/node_modules
+      - listforge-claude-home:/home/vscode/.claude
+    environment:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5050
+      CI: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: listforge
+      POSTGRES_PASSWORD: listforge
+      POSTGRES_DB: listforge
+    volumes:
+      - listforge-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listforge -d listforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   listforgeapi:
     image: listforgeapi
     build:
@@ -8,3 +43,11 @@ services:
       dockerfile: src/ListForge.API/Dockerfile
     ports:
       - 5050:5050
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  listforge-postgres-data:
+  listforge-frontend-node-modules:
+  listforge-claude-home:

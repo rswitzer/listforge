@@ -20,9 +20,22 @@ pnpm --version
 echo "==> Restoring .NET solution"
 dotnet restore ListForge.sln
 
-echo "==> Fixing volume mount ownership (volumes come up as root)"
-sudo chown -R "$(id -u):$(id -g)" frontend/node_modules || true
-sudo chown -R "$(id -u):$(id -g)" "$HOME/.claude" || true
+echo "==> Restoring local .NET tools (dotnet-ef)"
+dotnet tool restore
+
+echo "==> Ensuring dev JwtSecret is set (user-secrets)"
+# AuthOptions.JwtSecret has [MinLength(32)] + ValidateOnStart, so the API
+# refuses to boot without a real value. The user-secrets store lives at
+# ~/.microsoft/usersecrets/ and is not on a persistent compose volume, so
+# it is wiped on every devcontainer rebuild. Seed a random dev key the
+# first time we see an empty store. Production gets its key from a real
+# secret manager — this branch only ever fires in a dev container.
+if ! dotnet user-secrets list --project src/ListForge.API 2>/dev/null | grep -q '^Auth:JwtSecret = '; then
+  dotnet user-secrets set Auth:JwtSecret "$(openssl rand -hex 32)" --project src/ListForge.API >/dev/null
+  echo "    set fresh dev JwtSecret"
+else
+  echo "    already set; leaving alone"
+fi
 
 echo "==> Installing frontend dependencies"
 (cd frontend && pnpm install --frozen-lockfile=false)
@@ -36,10 +49,8 @@ echo "==> Installing Chromium runtime libs + Xvfb (apt)"
 # no-ops. Install the libs explicitly so Chromium has everything it needs
 # regardless of the active Playwright version's dep map.
 #
-# The Node devcontainer feature drops a yarn apt source whose signing key
-# rotates and is sometimes stale on the base image, breaking `apt-get update`.
-# We use pnpm via Corepack and don't need this source — remove it so apt is
-# stable for the rest of the script.
+# Defensive: the .devcontainer/Dockerfile already removes the stale yarn apt
+# source from the base image; this guards against changes to that layer.
 sudo rm -f /etc/apt/sources.list.d/yarn.list
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends \

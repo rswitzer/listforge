@@ -18,7 +18,7 @@ A web app that helps independent Etsy sellers (initial wedge: jewelry makers) ge
 
 ## Intended Architecture (v1)
 
-Modular monolith, not microservices. Backend REST API + separate React SPA. The frontend must never talk directly to Supabase, Etsy, or any AI provider — only to the ListForge backend.
+Modular monolith, not microservices. Backend REST API + separate React SPA. The frontend must never talk directly to the database, Etsy, or any AI provider — only to the ListForge backend.
 
 ### Solution layout
 
@@ -27,7 +27,7 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
   /ListForge.API              ASP.NET Core entry point, controllers, DI composition root
   /ListForge.Application      Use cases, MediatR command/query handlers, validation
   /ListForge.Domain           Aggregates, value objects, repository + service contracts
-  /ListForge.Infrastructure   Supabase, Claude, Etsy, storage, auth implementations
+  /ListForge.Infrastructure   EF Core, Identity, JWT issuance, local storage, Claude, Etsy implementations
   /ListForge.Contracts        API request/response DTOs (kept separate from domain)
 /frontend
   /src                        React + Vite + Tailwind + shadcn/ui
@@ -35,8 +35,10 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
 
 ### Tech stack
 
-- Backend: ASP.NET Core (C#), EF Core (code-first migrations), MediatR for CQRS.
-- Data/storage/auth: Supabase (Postgres, Storage, Auth) — all behind interfaces in Domain.
+- Backend: ASP.NET Core (C#), EF Core (code-first migrations) on Postgres, MediatR for CQRS (added when first use case appears).
+- Database: Postgres. Dev runs in `docker compose` (devcontainer attaches to the same compose network so the IPv4/IPv6 thing the free tier of Supabase forced on us doesn't recur). Production host deferred — Neon free tier is the leading candidate, but no commitment yet.
+- Auth: ASP.NET Core Identity stores users in our Postgres; we issue symmetric-key JWTs via `JwtTokenIssuer`. The frontend treats the access/refresh pair as opaque tokens.
+- File storage: `LocalFileStorage` (filesystem) in dev. Cloud object storage via `IFileStorage` is deferred until publish-flow work needs it.
 - AI: Claude (Anthropic) — behind `IImageAnalysisService` / `IListingGenerationService`.
 - Etsy: API v3 — behind a dedicated integration service boundary (anti-corruption layer).
 - Frontend state: React Query (server state) + React Hook Form (large forms). Add Zustand only if wizard complexity forces it.
@@ -61,7 +63,7 @@ The repo is a pnpm workspace (`pnpm-workspace.yaml` lists `frontend` as the only
 The repo ships an `.mcp.json` that registers the official `@playwright/mcp` server. After you approve it on first use (`claude mcp list`), the assistant can drive a real Chromium browser during a task — navigate routes, click controls, take screenshots, inspect the DOM. Use it to iterate on a feature until it visibly works, not just until tests pass. The dev server can be started in the background with `pnpm --dir frontend dev` and torn down at end-of-task.
 
 ### Vendor abstraction is load-bearing
-Every external provider (Supabase, Claude, Etsy) must be hidden behind a Domain-level interface with the implementation in Infrastructure. Do not pass provider SDK clients through application logic, and do not let raw provider payloads reach domain state — normalize into application DTOs first. Switching providers should only touch Infrastructure.
+Every external provider (Claude, Etsy) and every infrastructure-shaped concern (persistence, auth, file storage) must be hidden behind a Domain-level interface with the implementation in Infrastructure. Do not pass provider SDK clients through application logic, and do not let raw provider payloads reach domain state — normalize into application DTOs first. Switching providers — for example, swapping `LocalFileStorage` for an S3/R2-backed implementation — should only touch Infrastructure.
 
 ### Synchronous by default
 Start with synchronous image analysis + listing generation. Do not introduce job queues, polling, SignalR, or background workers unless AI latency forces it. If that day comes, add a `GenerationJob` abstraction rather than restructuring.
@@ -115,6 +117,7 @@ The devcontainer at `.devcontainer/` is the canonical dev path. From VS Code: co
 ### Toolchain
 - .NET 9 SDK (`net9.0`). The user-space install lives at `~/.dotnet`.
 - Node 20 LTS via nvm (`~/.nvm`). pnpm via Corepack.
+- `dotnet-ef` is pinned as a local tool in `.config/dotnet-tools.json`. Run `dotnet tool restore` after cloning so `dotnet ef ...` works for migrations.
 - A sourceable env file is provided at `/tmp/listforge-env.sh`. Source it before running build/test/run commands so that `dotnet 9.0.x`, `node 20`, and `pnpm` are on PATH:
   ```
   source /tmp/listforge-env.sh
@@ -122,8 +125,9 @@ The devcontainer at `.devcontainer/` is the canonical dev path. From VS Code: co
 
 ### Backend
 - `dotnet build ListForge.sln` — restore + compile all 9 projects.
-- `dotnet test ListForge.sln` — run all xUnit projects. The canary `HelloEndpointTests` lives in `tests/ListForge.API.Tests/`.
-- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Endpoints: `GET /api/health`, `GET /api/hello`.
+- `dotnet test ListForge.sln` — run all xUnit projects. `AuthControllerTests` use Testcontainers and skip cleanly when Docker isn't available.
+- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Auto-applies pending EF migrations on startup in Development. Endpoints: `GET /api/health`, `GET /api/health/db`, `GET /api/hello`, `POST /api/auth/{register,login,refresh}`.
+- `dotnet ef migrations add <Name> --project src/ListForge.Infrastructure --startup-project src/ListForge.API --output-dir Persistence/Migrations` — generate a new migration after a model change.
 
 ### Frontend
 - `cd frontend && pnpm install` — install dependencies.

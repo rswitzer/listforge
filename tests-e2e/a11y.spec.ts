@@ -11,6 +11,7 @@ import { checkA11y } from './utils/a11y';
 // NOT enforce floor a11y coverage — that's owned by this list.
 const ROUTES: Array<{ name: string; path: string }> = [
   { name: 'home', path: '/' },
+  { name: 'health', path: '/health' },
 ];
 
 test.describe('accessibility (WCAG 2.1 AA)', () => {
@@ -22,6 +23,12 @@ test.describe('accessibility (WCAG 2.1 AA)', () => {
           contentType: 'application/json',
           body: JSON.stringify({ message: 'Hello, ListForge!' }),
         }),
+      );
+      await page.route('**/api/health', (r) =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"ok"}' }),
+      );
+      await page.route('**/api/health/db', (r) =>
+        r.fulfill({ status: 200, contentType: 'text/plain', body: 'Healthy' }),
       );
 
       await page.goto(route.path);

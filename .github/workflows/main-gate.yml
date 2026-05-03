@@ -37,6 +37,8 @@ jobs:
       - name: Restore
         run: dotnet restore ListForge.sln --locked-mode
 
+      # AuthControllerTests spin up Postgres via Testcontainers, which
+      # talks to the runner's Docker daemon directly — no `services:` block needed.
       - name: Test
         run: dotnet test ListForge.sln --no-restore --nologo
 
