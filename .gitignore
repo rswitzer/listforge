@@ -29,6 +29,7 @@ test-results/
 
 # Claude local
 .claude/settings.local.json
+.claude/hooks/local/
 
 # OS
 .DS_Store
