@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { within } from '@testing-library/react';
 import { axe } from '@/test/axe';
 import { render, screen } from '@/test/render';
 import { LandingPage } from './LandingPage';
@@ -26,10 +27,16 @@ describe('LandingPage', () => {
     expect(cta).toHaveAttribute('href', '/signup');
   });
 
-  it('does not show a login link', () => {
+  it('exposes login from the page banner and as a secondary link below the CTA', () => {
     render(<LandingPage />);
 
-    expect(screen.queryByRole('link', { name: /log ?in|sign in/i })).toBeNull();
+    const banner = screen.getByRole('banner');
+    const headerLogin = within(banner).getByRole('link', { name: /log in/i });
+    expect(headerLogin).toHaveAttribute('href', '/login');
+
+    const loginLinks = screen.getAllByRole('link', { name: /log in/i });
+    expect(loginLinks).toHaveLength(2);
+    expect(loginLinks.every((link) => link.getAttribute('href') === '/login')).toBe(true);
   });
 
   it('has no axe-detectable accessibility violations', async () => {

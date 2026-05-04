@@ -30,3 +30,17 @@ test('landing page renders hero and how-it-works, CTA navigates to signup', asyn
   ).toBeVisible();
   await checkA11y(page);
 });
+
+test('header Log in link navigates to /login', async ({ page }) => {
+  await page.goto('/');
+
+  const headerLogin = page.getByRole('banner').getByRole('link', { name: /log in/i });
+  await expect(headerLogin).toBeVisible();
+  await headerLogin.click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole('heading', { name: /welcome back/i, level: 1 }),
+  ).toBeVisible();
+  await checkA11y(page);
+});
