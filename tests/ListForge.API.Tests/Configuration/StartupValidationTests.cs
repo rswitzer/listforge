@@ -24,22 +24,6 @@ public sealed class StartupValidationTests
     }
 
     [Fact]
-    public void Boot_MissingAuthJwtSecret_ThrowsOptionsValidationException()
-    {
-        // Arrange
-        var configuration = new Dictionary<string, string?>(_validConfiguration);
-        configuration.Remove("Auth:JwtSecret");
-        using var factory = CreateFactory(configuration);
-
-        // Act
-        var act = () => factory.CreateClient();
-
-        // Assert
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*JwtSecret*");
-    }
-
-    [Fact]
     public void Boot_MissingDatabaseConnectionString_ThrowsOptionsValidationException()
     {
         // Arrange
@@ -55,30 +39,9 @@ public sealed class StartupValidationTests
             .WithMessage("*ConnectionString*");
     }
 
-    [Fact]
-    public void Boot_MissingFrontendAllowedOrigins_ThrowsOptionsValidationException()
-    {
-        // Arrange
-        var configuration = new Dictionary<string, string?>(_validConfiguration);
-        configuration.Remove("Frontend:AllowedOrigins:0");
-        using var factory = CreateFactory(configuration);
-
-        // Act
-        var act = () => factory.CreateClient();
-
-        // Assert
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*AllowedOrigins*");
-    }
-
     private static readonly Dictionary<string, string?> _validConfiguration = new()
     {
-        ["Auth:Issuer"] = "ListForge",
-        ["Auth:Audience"] = "listforge-api",
-        ["Auth:JwtSecret"] = "test-jwt-secret-32-chars-minimum-x",
         ["Database:ConnectionString"] = "Host=localhost;Database=listforge_test;Username=test;Password=test",
-        ["Storage:RootPath"] = "./.local-storage-test",
-        ["Frontend:AllowedOrigins:0"] = "http://localhost:5173",
     };
 
     private static WebApplicationFactory<Program> CreateFactory(IDictionary<string, string?> configuration)

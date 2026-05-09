@@ -3,22 +3,22 @@ import { render, screen, waitFor } from '@/test/render';
 import App from './App';
 
 describe('App', () => {
-  it('renders the landing page at "/" so unauthenticated visitors see what ListForge is before signing up', async () => {
+  it('redirects "/" to /health so the health dashboard is the default landing surface', async () => {
     render(<App />, { initialEntries: ['/'] });
 
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: /better etsy listings/i, level: 1 }),
+        screen.getByRole('heading', { name: /system health/i, level: 1 }),
       ).toBeInTheDocument();
     });
   });
 
-  it('still serves the signup form directly at /signup', async () => {
-    render(<App />, { initialEntries: ['/signup'] });
+  it('renders the health page directly at /health', async () => {
+    render(<App />, { initialEntries: ['/health'] });
 
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: /create your account/i, level: 1 }),
+        screen.getByRole('heading', { name: /system health/i, level: 1 }),
       ).toBeInTheDocument();
     });
   });

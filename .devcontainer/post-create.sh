@@ -28,12 +28,6 @@ pnpm --version
 echo "==> Restoring .NET solution"
 dotnet restore ListForge.sln
 
-echo "==> Restoring local .NET tools (dotnet-ef)"
-dotnet tool restore
-
-echo "==> Ensuring dev JwtSecret is set (user-secrets)"
-.devcontainer/ensure-jwt-secret.sh
-
 echo "==> Installing frontend dependencies"
 (cd frontend && pnpm install --frozen-lockfile=false)
 
