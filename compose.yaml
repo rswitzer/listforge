@@ -1,6 +1,14 @@
-# Compose drives both the production-style API container and the dev workspace
-# (devcontainer attaches to the `workspace` service so it shares a network with
-# `postgres`). Refer https://aka.ms/HTTPSinContainer for HTTPS dev certs.
+# Compose drives the dev workspace (devcontainer attaches to the `workspace`
+# service so it shares a network with `postgres`) and an opt-in production-
+# style API container under the `prodlike` profile. The dev workflow runs the
+# API via `dotnet run --project src/ListForge.API` from inside the workspace
+# container — that path picks up dev user-secrets (Auth:JwtSecret) and the
+# Development appsettings. The `listforgeapi` service is reserved for
+# occasional prod-image smoke tests and only starts when invoked with
+# `docker compose --profile prodlike up listforgeapi` (it would otherwise
+# crash-loop here, since the published image has no JwtSecret /
+# ConnectionString / AllowedOrigins wired in). Refer
+# https://aka.ms/HTTPSinContainer for HTTPS dev certs.
 
 services:
   workspace:
@@ -38,6 +46,7 @@ services:
 
   listforgeapi:
     image: listforgeapi
+    profiles: ["prodlike"]
     build:
       context: .
       dockerfile: src/ListForge.API/Dockerfile

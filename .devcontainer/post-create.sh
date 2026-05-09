@@ -12,6 +12,14 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   . "$NVM_DIR/nvm.sh"
 fi
 
+echo "==> Activating corepack-managed pnpm"
+# The Node devcontainer feature installs the latest pnpm globally via npm, and
+# recent pnpm releases (>=11) require Node >=22.13 — they crash on `node:sqlite`
+# under Node 20. `corepack enable` replaces that global pnpm with a shim that
+# honors each project's `packageManager` field; running `pnpm` from anywhere
+# under the repo root then resolves to the pinned pnpm@10.x (Node 20 compatible).
+corepack enable
+
 echo "==> Toolchain"
 dotnet --version
 node --version
@@ -24,18 +32,7 @@ echo "==> Restoring local .NET tools (dotnet-ef)"
 dotnet tool restore
 
 echo "==> Ensuring dev JwtSecret is set (user-secrets)"
-# AuthOptions.JwtSecret has [MinLength(32)] + ValidateOnStart, so the API
-# refuses to boot without a real value. The user-secrets store lives at
-# ~/.microsoft/usersecrets/ and is not on a persistent compose volume, so
-# it is wiped on every devcontainer rebuild. Seed a random dev key the
-# first time we see an empty store. Production gets its key from a real
-# secret manager — this branch only ever fires in a dev container.
-if ! dotnet user-secrets list --project src/ListForge.API 2>/dev/null | grep -q '^Auth:JwtSecret = '; then
-  dotnet user-secrets set Auth:JwtSecret "$(openssl rand -hex 32)" --project src/ListForge.API >/dev/null
-  echo "    set fresh dev JwtSecret"
-else
-  echo "    already set; leaving alone"
-fi
+.devcontainer/ensure-jwt-secret.sh
 
 echo "==> Installing frontend dependencies"
 (cd frontend && pnpm install --frozen-lockfile=false)
@@ -61,7 +58,7 @@ sudo apt-get install -y --no-install-recommends \
   libasound2 libfreetype6 libfontconfig1 libdbus-1-3 \
   libnss3 libnspr4 libatk-bridge2.0-0 libcups2 libxkbcommon0 \
   libatspi2.0-0 libgbm1 \
-  xvfb
+  xvfb xauth
 
 echo "==> Installing Playwright Chromium binary"
 (cd frontend && pnpm exec playwright install chromium)
