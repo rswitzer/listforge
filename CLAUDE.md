@@ -27,7 +27,7 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
   /ListForge.API              ASP.NET Core entry point, controllers, DI composition root
   /ListForge.Application      Use cases, MediatR command/query handlers, validation
   /ListForge.Domain           Aggregates, value objects, repository + service contracts
-  /ListForge.Infrastructure   EF Core, Identity, JWT issuance, local storage, Claude, Etsy implementations
+  /ListForge.Infrastructure   Dapper + Npgsql for app persistence, EF Core + Identity for the auth slice, JWT issuance, local storage, Claude, Etsy implementations
   /ListForge.Contracts        API request/response DTOs (kept separate from domain)
 /frontend
   /src                        React + Vite + Tailwind + shadcn/ui
@@ -35,9 +35,9 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
 
 ### Tech stack
 
-- Backend: ASP.NET Core (C#), EF Core (code-first migrations) on Postgres, MediatR for CQRS (added when first use case appears).
+- Backend: ASP.NET Core (C#), Dapper + Npgsql for application persistence (DbUp runs embedded `.sql` migration scripts on startup), MediatR for CQRS (added when first use case appears). EF Core remains in-solution **only** for the ASP.NET Core Identity slice (users, password hashes, refresh tokens) — its schema is owned by EF migrations, nothing else uses EF Core.
 - Database: Postgres. Dev runs in `docker compose` (devcontainer attaches to the same compose network). Production host deferred — Neon free tier is the leading candidate, but no commitment yet.
-- Auth: ASP.NET Core Identity stores users in our Postgres; we issue symmetric-key JWTs via `JwtTokenIssuer`. The frontend treats the access/refresh pair as opaque tokens.
+- Auth: ASP.NET Core Identity stores users + password hashes in our Postgres via the Identity-scoped `IdentityDbContext` (the only place EF Core appears); we issue symmetric-key JWTs via `JwtTokenIssuer`. The frontend treats the access/refresh pair as opaque tokens.
 - File storage: `LocalFileStorage` (filesystem) in dev. Cloud object storage via `IFileStorage` is deferred until publish-flow work needs it.
 - AI: Claude (Anthropic) — behind `IImageAnalysisService` / `IListingGenerationService`.
 - Etsy: API v3 — behind a dedicated integration service boundary (anti-corruption layer).
@@ -120,7 +120,7 @@ The devcontainer at `.devcontainer/` is the **required** dev environment — see
 ### Toolchain
 - .NET 9 SDK (`net9.0`). The user-space install lives at `~/.dotnet`.
 - Node 20 LTS via nvm (`~/.nvm`). pnpm via Corepack.
-- `dotnet-ef` is pinned as a local tool in `.config/dotnet-tools.json`. Run `dotnet tool restore` after cloning so `dotnet ef ...` works for migrations.
+- `dotnet-ef` is pinned as a local tool in `.config/dotnet-tools.json` **for the Identity schema only**. Run `dotnet tool restore` after cloning so `dotnet ef ...` works for changes to the Identity context (AspNetUsers / RefreshTokens / etc.). Application-schema changes do not use `dotnet ef` — they ship as DbUp scripts (see Backend commands below).
 - A sourceable env file is provided at `/tmp/listforge-env.sh`. Source it before running build/test/run commands so that `dotnet 9.0.x`, `node 20`, and `pnpm` are on PATH:
   ```
   source /tmp/listforge-env.sh
@@ -129,8 +129,9 @@ The devcontainer at `.devcontainer/` is the **required** dev environment — see
 ### Backend
 - `dotnet build ListForge.sln` — restore + compile all 9 projects.
 - `dotnet test ListForge.sln` — run all xUnit projects. `AuthControllerTests` use Testcontainers and skip cleanly when Docker isn't available.
-- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. Auto-applies pending EF migrations on startup in Development. Endpoints: `GET /api/health`, `GET /api/health/db`, `POST /api/auth/{register,login,refresh}`.
-- `dotnet ef migrations add <Name> --project src/ListForge.Infrastructure --startup-project src/ListForge.API --output-dir Persistence/Migrations` — generate a new migration after a model change.
+- `dotnet run --project src/ListForge.API` — local dev server on `http://localhost:5050`. On startup in Development, applies pending Identity EF migrations *and* pending DbUp scripts for the application schema. Endpoints: `GET /api/health`, `GET /api/health/db`, `POST /api/auth/{register,login,refresh}`.
+- `dotnet ef migrations add <Name> --project src/ListForge.Infrastructure --startup-project src/ListForge.API --output-dir Identity/Migrations` — generate a new migration **for the Identity schema only**. Application-schema changes do not use this command.
+- For an application-schema change (drafts, Shop Rules, Etsy connections, listings, …): drop a numbered SQL file into `src/ListForge.Infrastructure/Persistence/Migrations/` (e.g. `0007_add_listing_draft_table.sql`) and mark it as an embedded resource. DbUp picks it up at startup, runs it inside a transaction, and records it in the `SchemaVersions` table. Do not modify a previously shipped script — write a new one.
 
 ### Frontend
 - `cd frontend && pnpm install` — install dependencies.

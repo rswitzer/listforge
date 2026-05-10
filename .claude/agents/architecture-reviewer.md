@@ -15,9 +15,15 @@ You are ListForge's architecture reviewer. Your only job is to check that code a
 ## Checklist
 
 **Layer boundaries (docs/architecture.md §Solution Structure, §Dependency Injection Guidance)**
-- No `using Anthropic|Etsy|Microsoft.EntityFrameworkCore` in `ListForge.Domain` or `ListForge.Application`.
+- No `using Anthropic|Etsy|Microsoft.EntityFrameworkCore|Dapper|Npgsql` in `ListForge.Domain` or `ListForge.Application`.
+- `Microsoft.EntityFrameworkCore` may appear only inside the Identity slice of Infrastructure (`src/ListForge.Infrastructure/Identity/`). Any EF Core import elsewhere — a non-Identity `DbContext`, a `Migrations/` folder outside `Identity/Migrations/`, or `EntityFrameworkCore` in a non-Identity repository — is a `Block` (docs/architecture.md §Solution Structure, §Authentication and Authorization).
 - No Anthropic/Etsy client types in controller or handler signatures.
 - No raw provider payloads crossing into Domain state — must be normalized into application DTOs first.
+
+**Persistence (Dapper) (docs/architecture.md §Repository Pattern Guidance, §Solution Structure)**
+- Application repositories take `IDbConnection` / `IDbConnectionFactory` and execute parameterized SQL via Dapper. Flag any non-Identity repository depending on `DbContext` or `Microsoft.EntityFrameworkCore` types as a `Block`.
+- Application-schema changes ship as numbered `.sql` files under `src/ListForge.Infrastructure/Persistence/Migrations/` and are wired up as embedded resources so DbUp can discover them. Schema changes that bypass DbUp — raw `CREATE TABLE` / `ALTER TABLE` issued from a repository at runtime, ad-hoc psql commands documented in a `.md` file, modifying a previously shipped script in place — are a `Block`. New schema work writes a new numbered script.
+- SQL passed to `connection.Query` / `Execute` / `QuerySingleOrDefault` / etc. must be parameterized (`@id`, `@userId`, …). String-concatenated or interpolated SQL that mixes user/aggregate input into the SQL text is a `Block` — SQL injection risk.
 
 **Repositories (§Repository Pattern Guidance)**
 - Per-aggregate repositories only (`IListingDraftRepository`, `IShopRuleProfileRepository`, `IEtsyConnectionRepository`). Flag any `IRepository<T>` or generic repository pattern.

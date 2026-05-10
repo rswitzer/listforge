@@ -51,6 +51,8 @@ case "$rel" in
   *ServiceCollectionExtensions.cs|*DependencyInjection.cs)    exit 0 ;;
   src/ListForge.Contracts/*)                                  exit 0 ;;
   *.csproj|*.sln|*.props|*.targets|*.json|*.yml|*.yaml|*.md)  exit 0 ;;
+  # DbUp migration scripts — schema data, not behavior under test.
+  *.sql)                                                      exit 0 ;;
 esac
 
 # Domain *interfaces only* — repository contracts and service contracts don't need their own tests;

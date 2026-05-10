@@ -107,7 +107,8 @@ Recommended solution structure:
 - Business rules that should not live in controllers or infrastructure.
 
 #### ListForge.Infrastructure
-- Database persistence (EF Core + Npgsql).
+- Database persistence (Dapper + Npgsql) for the application schema. DbUp runs application-schema migrations from embedded `.sql` scripts under `Persistence/Migrations/` at startup, tracked in a `SchemaVersions` table.
+- EF Core scoped to the Identity slice (`Identity/IdentityDbContext.cs`, `Identity/Migrations/`) for AspNetUsers / AspNetRoles / RefreshTokens. Nothing outside the Identity folder may import `Microsoft.EntityFrameworkCore`.
 - File storage (`LocalFileStorage` in dev; cloud-backed implementations later).
 - Auth implementation (ASP.NET Core Identity + `JwtTokenIssuer`).
 - AI provider implementation.
@@ -175,8 +176,8 @@ The frontend must never talk directly to any auth implementation. It calls `/api
 ### Recommended model
 - The frontend authenticates only against the ListForge backend.
 - The backend owns auth verification and session/token validation. v1 issues symmetric-key JWTs from `JwtTokenIssuer`, validated by the standard `JwtBearer` middleware.
-- ASP.NET Core Identity stores users + password hashes in our Postgres via `ListForgeDbContext`.
-- Refresh tokens are persisted hashed (SHA-256) in the `RefreshTokens` table; rotation revokes the previous record on use.
+- ASP.NET Core Identity stores users + password hashes in our Postgres via `IdentityDbContext` (scoped to the Identity slice of Infrastructure — the only place EF Core appears). The rest of the application persistence layer uses Dapper through per-aggregate repositories.
+- Refresh tokens are persisted hashed (SHA-256) in the `RefreshTokens` table inside the Identity context; rotation revokes the previous record on use.
 
 ### Guidance
 - Do not expose Identity-specific concepts to the frontend.
@@ -334,6 +335,9 @@ Repository responsibilities:
 - Avoid becoming a dumping ground for arbitrary reporting queries.
 
 For read-heavy list screens, it is acceptable to use simple query services/read repositories in the application layer rather than forcing everything through domain repositories.
+
+### Implementation note (Dapper)
+Application repositories are Dapper-based — they take an `IDbConnection` (or an `IDbConnectionFactory`) and execute parameterized SQL. Domain interfaces remain ORM-agnostic; nothing under `ListForge.Domain` or `ListForge.Application` should reference Dapper, Npgsql, or EF Core. EF Core is allowed only inside `ListForge.Infrastructure/Identity/` for the Identity store. Application-schema migrations are numbered `.sql` files under `src/ListForge.Infrastructure/Persistence/Migrations/`, run by DbUp at startup; schema changes that bypass DbUp (raw `CREATE TABLE` in a repository, ad-hoc psql instructions in a doc) are not allowed.
 
 ## Application Layer Guidance
 
@@ -685,7 +689,7 @@ Changes to these choices require an explicit addition to the Decision Log.
 
 - **Domain.Tests** — pure unit tests on aggregates and value objects. No I/O, no DI container, no mocks. Construct objects directly and assert invariants.
 - **Application.Tests** — handler-level unit tests. Use NSubstitute (or a hand-rolled fake) for repository interfaces and a test double for `ICurrentUserAccessor`. Every handler test file must cover: happy path, unauthorized user (different `UserId`), and validator failure when a validator exists.
-- **Infrastructure.Tests** — integration tests against real Postgres via Testcontainers for repository and persistence code. In-process fakes for the Anthropic/Etsy client seams. Do **not** use an in-memory EF Core provider or SQLite substitute — they hide migration and query issues.
+- **Infrastructure.Tests** — integration tests against real Postgres via Testcontainers for repository and persistence code. In-process fakes for the Anthropic/Etsy client seams. Do **not** substitute the database connection (no in-memory provider, no fake `IDbConnection`, no SQLite, no in-memory EF Core provider for the Identity context). Repository tests run against a real Postgres so they exercise the same Dapper SQL and the same DbUp-applied schema as production; Identity tests exercise the same EF migrations the app applies on startup.
 - **API.Tests** — endpoint integration tests built on `WebApplicationFactory<Program>`. Every endpoint has: a 2xx happy-path test, a 401 unauthenticated test, a 404 test for missing or other-user-owned resources, and a 422 test for invalid bodies. Register a test `ICurrentUserAccessor` in the factory's service overrides.
 - **Frontend (component)** — component and interaction tests (Vitest + RTL). Assert observable behavior — user events, rendered text, role-based queries — not class names or internal state. Accessibility affordances (roles, labels, focus) are part of the behavior under test.
 - **Frontend (end-to-end)** — Playwright specs in `tests-e2e/` covering full-route user flows in real Chromium. Each user-facing screen (a file under `frontend/src/pages/`) gets a sibling spec named `tests-e2e/<screen>.spec.ts`. The Playwright config auto-starts the Vite dev server and the .NET API via its `webServer` block. Assert the same kinds of observable behavior as Vitest — roles, labels, visible text, navigation, form state preservation across wizard steps.
@@ -811,6 +815,7 @@ Picking a single canonical environment is the cheapest way to make "works on my 
 - Test frameworks are locked: xUnit + FluentAssertions + NSubstitute for backend; Vitest + React Testing Library for frontend. Changing these requires a new entry in this log.
 - **2026-04-29:** Playwright is now in v1 scope (was: out of scope, see prior version of §Testing Strategy). Every user-facing feature gets a `tests-e2e/<feature>.spec.ts` alongside Vitest component tests. Triggered by manual verification of the wizard flow becoming the bottleneck and the need for autonomous live verification during agent-driven development. Stack remains Chromium-only for v1; cross-browser revisit when a real cross-browser bug appears.
 - **2026-05-10:** The devcontainer at `.devcontainer/` is the required dev environment. Devcontainer config must be updated in the same change as any new dev dependency (system lib, dotnet tool, port, env var, devcontainer feature). The pre-push hook at `.githooks/pre-push` must stay enabled — `post-create.sh` keeps running `setup-hooks.sh`, contributors don't unset `core.hooksPath`. Non-devcontainer dev is best-effort with CI as the authoritative gate. See §Development Environment.
+- **2026-05-10:** Application persistence uses **Dapper + Npgsql**, not EF Core. ASP.NET Core Identity remains on EF Core for the auth slice only — `IdentityDbContext` scoped to AspNetUsers / AspNetRoles / RefreshTokens, with `dotnet ef migrations add` reserved for changes to that schema. Application-schema migrations are numbered `.sql` scripts under `src/ListForge.Infrastructure/Persistence/Migrations/`, executed by **DbUp** on startup and tracked in a `SchemaVersions` table. Reason: own the SQL for the listing/draft/Shop-Rules aggregates (read-heavy, Postgres-specific behaviour) without rewriting the well-tested Identity user/password/refresh-token schema. Replaces the prior "EF Core code-first migrations" choice in the original Tech Stack table.
 
 ### Open decisions intentionally left unresolved
 These should remain open until a real feature implementation requires them:

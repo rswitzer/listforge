@@ -40,10 +40,11 @@ You are ListForge's TDD reviewer. Your job is to keep the Red → Green → Refa
 - *Frontend component tests* must assert observable behavior (user events, rendered text, role-based queries), not implementation details (class names, internal state).
 
 **Vendor-SDK mocking (`Block`)**
-- `Substitute.For<Anthropic.*>()` or any SDK type from `Anthropic`, `Etsy`, or `Microsoft.EntityFrameworkCore` appearing inside `tests/`. Tests must mock our domain interfaces (`IImageAnalysisService`, `IEtsyListingService`, `IListingDraftRepository`, etc.), never the vendor SDK directly — this keeps the vendor abstraction from decaying (docs/architecture.md §AI Integration Guidance, §Etsy Integration Guidance).
+- `Substitute.For<Anthropic.*>()` or any SDK type from `Anthropic` or `Etsy` appearing inside `tests/`. Tests must mock our domain interfaces (`IImageAnalysisService`, `IEtsyListingService`, `IListingDraftRepository`, etc.), never the vendor SDK directly — this keeps the vendor abstraction from decaying (docs/architecture.md §AI Integration Guidance, §Etsy Integration Guidance).
+- Persistence: don't `Substitute.For<IDbConnection>()`, don't `Substitute.For<DbContext>()` (including the Identity context), don't substitute Dapper extension methods, don't fake Npgsql connections. Repository tests go through real Postgres via Testcontainers — see Repository testing pattern below.
 
 **Repository testing pattern (`Fix`)**
-- Repository tests live under `tests/ListForge.Infrastructure.Tests/` and use Testcontainers-backed Postgres (docs/architecture.md §Testing Strategy). Flag any repository test that uses an in-memory EF Core provider or SQLite substitute — those don't catch real migration/query issues.
+- Repository tests live under `tests/ListForge.Infrastructure.Tests/` and use Testcontainers-backed Postgres (docs/architecture.md §Testing Strategy). Flag any repository test that uses an in-memory provider, a fake `IDbConnection`, an in-memory EF Core provider for the Identity context, or a SQLite substitute — those don't catch real migration/query issues. Application repository tests must exercise the same Dapper SQL and DbUp-applied schema as production; Identity tests must exercise the same EF migrations the app applies on startup.
 
 **Naming sanity (`Nit`)**
 - Backend unit tests follow `Method_State_Expectation` (e.g., `Handle_UserDoesNotOwnDraft_ReturnsNotFound`). Flag test names that don't describe the behavior.

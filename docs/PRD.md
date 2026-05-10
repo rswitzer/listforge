@@ -44,7 +44,8 @@ Initial target users:
 |-------|-----------|-------|
 | Frontend | React + Vite + Tailwind + shadcn/ui | SPA, separate service |
 | Backend | ASP.NET Core (C#) | REST API |
-| ORM | Entity Framework Core | Code-first migrations |
+| Persistence (app) | Dapper + Npgsql | Per-aggregate repositories; DbUp runs `.sql` migrations on startup |
+| Persistence (auth) | EF Core (ASP.NET Core Identity) | Scoped to AspNetUsers / AspNetRoles / RefreshTokens; EF migrations |
 | CQRS | Simple CQRS + MediatR | Commands/queries, pipeline behaviors |
 | Database | Postgres (self-hosted dev via docker compose; prod host TBD) | Abstracted via per-aggregate repositories |
 | File Storage | `LocalFileStorage` (dev); prod host TBD | Abstracted via `IFileStorage` |
@@ -68,7 +69,7 @@ Start as a **modular monolith** using Domain-Driven Design. Bounded contexts are
   /ListForge.API              - ASP.NET Core entry point, controllers, middleware
   /ListForge.Application      - Use cases, commands, queries (CQRS via MediatR)
   /ListForge.Domain           - Aggregates, value objects, domain events, interfaces
-  /ListForge.Infrastructure   - EF Core (Postgres), Identity, file storage, Claude, Etsy implementations
+  /ListForge.Infrastructure   - Dapper + Npgsql for app persistence; EF Core only inside the Identity slice; file storage, Claude, Etsy implementations
   /ListForge.Contracts        - DTOs, API request/response models
 /frontend
   /src                        - React application (Vite)
@@ -323,7 +324,9 @@ Recommended tone:
 | Question | Decision |
 |----------|----------|
 | Auth system | ASP.NET Core Identity + symmetric-key JWT (self-hosted, abstracted) |
-| Shop Rules storage | Postgres via EF Core (abstracted via per-aggregate repository) |
+| Auth store | ASP.NET Core Identity on EF Core, scoped to the Identity slice (only place EF Core appears) |
+| Application ORM | Dapper + Npgsql; DbUp runs `.sql` migrations on startup |
+| Shop Rules storage | Postgres via Dapper (abstracted via per-aggregate repository) |
 | Low-confidence materials | Leave blank, user fills in |
 | Re-generation | Included in v1, both full listing and field-level |
 | Shop Rules profiles | Multiple per user |

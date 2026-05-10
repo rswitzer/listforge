@@ -17,10 +17,10 @@ If a feature isn't covered in those docs, stop and ask before inventing product 
 
 | Layer | Tech |
 | --- | --- |
-| Backend | ASP.NET Core 9 (`net9.0`), EF Core 9 on Postgres, MediatR (added when first use case appears) |
+| Backend | ASP.NET Core 9 (`net9.0`), Dapper + Npgsql for app persistence (DbUp runs `.sql` migrations on startup), MediatR (added when first use case appears) |
 | Frontend | React 18 + Vite + TypeScript + Tailwind |
 | Tests | xUnit + FluentAssertions + NSubstitute + Testcontainers (backend); Vitest + React Testing Library (frontend components); Playwright (end-to-end, Chromium) |
-| Auth | ASP.NET Core Identity + symmetric-key JWT (issuance/validation in our backend), abstracted via `ICurrentUserAccessor` and `IJwtTokenIssuer` |
+| Auth | ASP.NET Core Identity (on EF Core, scoped to the Identity slice — the only place EF Core appears) + symmetric-key JWT (issuance/validation in our backend), abstracted via `ICurrentUserAccessor` and `IJwtTokenIssuer` |
 | Database | Postgres — dev runs in `docker compose` (devcontainer attaches to the same network); production host deferred |
 | Storage | `LocalFileStorage` for dev; cloud-backed `IFileStorage` deferred until needed |
 | AI | Claude (Anthropic), behind `IImageAnalysisService` / `IListingGenerationService` |
@@ -35,7 +35,7 @@ src/
   ListForge.API             ASP.NET Core entry point, controllers, DI
   ListForge.Application     Use cases, MediatR handlers, validation
   ListForge.Domain          Aggregates, value objects, repository contracts
-  ListForge.Infrastructure  EF Core + Identity, JWT issuance, local file storage, Claude, Etsy
+  ListForge.Infrastructure  Dapper + Npgsql for app persistence; EF Core only inside the Identity slice; DbUp runs SQL migrations; JWT issuance, local file storage, Claude, Etsy
   ListForge.Contracts       API request/response DTOs
 tests/
   ListForge.Domain.Tests
@@ -57,12 +57,12 @@ The repo ships with a compose-based devcontainer. Two services come up together:
 
 1. Install [Docker](https://www.docker.com/) and [VS Code](https://code.visualstudio.com/) with the **Dev Containers** extension.
 2. Open the repo folder in VS Code → command palette → **Dev Containers: Reopen in Container**.
-3. Wait for `post-create.sh` to finish (`dotnet restore`, `dotnet tool restore` for `dotnet-ef`, `pnpm install`, Chromium runtime libs + Xvfb via apt, and `playwright install chromium`).
+3. Wait for `post-create.sh` to finish (`dotnet restore`, `dotnet tool restore` for `dotnet-ef` (used only for the Identity schema), `pnpm install`, Chromium runtime libs + Xvfb via apt, and `playwright install chromium`).
 4. Set the JWT signing secret once via user-secrets:
    ```
    dotnet user-secrets set Auth:JwtSecret "$(openssl rand -hex 32)" --project src/ListForge.API
    ```
-5. In the integrated terminal: `dotnet run --project src/ListForge.API` (auto-applies EF migrations against the compose `postgres` on first run).
+5. In the integrated terminal: `dotnet run --project src/ListForge.API` (auto-applies the Identity EF migrations and any pending DbUp scripts against the compose `postgres` on first run).
 6. In a second terminal: `cd frontend && pnpm dev`.
 7. VS Code auto-forwards ports 5050 and 5173. Open `http://localhost:5173` in your browser.
 
@@ -170,7 +170,7 @@ The repo ships an `.mcp.json` registering Microsoft's official Playwright MCP se
 - TDD is mandatory. Write the failing test first.
 - One repository per aggregate root (`IListingDraftRepository`, never `IRepository<T>`).
 - Every list/read/update/delete is user-scoped (`ICurrentUserAccessor`).
-- Vendor SDKs (Anthropic, Etsy) and infrastructure-shaped concerns (EF Core, Identity, JWT issuance, file storage) only inside `ListForge.Infrastructure`.
+- Vendor SDKs (Anthropic, Etsy) and infrastructure-shaped concerns (Dapper + Npgsql, ASP.NET Core Identity on EF Core, JWT issuance, file storage) only inside `ListForge.Infrastructure`. Application/Domain code never imports `Dapper`, `Npgsql`, or `Microsoft.EntityFrameworkCore`. EF Core itself only appears under `ListForge.Infrastructure/Identity/`.
 - v1 has **no** versioning, **no** domain events, **no** job queues, **no** rules engine — `docs/architecture.md §Non-Goals` is the canonical list.
 - UI copy uses friendly language. "Shop Rules", not "Guardrail Profiles". "Create Listing", not "Generate Listing".
 - Frontend test patterns (custom `render`, role-first queries, AI-surface assertions, copy rule) are in [`docs/testing.md`](./docs/testing.md).
