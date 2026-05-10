@@ -731,6 +731,46 @@ All backend tests follow AAA structure, with blank lines or `// Arrange` / `// A
 - Use typed request/response contracts.
 - Keep presentation components separate from data-fetching hooks when practical.
 
+## Development Environment
+
+### Canonical environment
+
+The devcontainer at `.devcontainer/` is the **required** dev environment for ListForge. It pins the .NET 9 SDK, Node 20 LTS, pnpm via Corepack, the Chromium runtime libraries Playwright needs on Debian Bookworm, Xvfb, and the Postgres compose service that backend integration tests connect to. Open the project via VS Code's "Dev Containers: Reopen in Container" — that is the supported path.
+
+Non-devcontainer setups (manual .NET/Node install on the host) are best-effort: they may work for backend-only changes, but `pnpm exec playwright test` will fail on hosts that don't have the Chromium system libraries installed, and the pre-push E2E step needs `LISTFORGE_SKIP_PREPUSH_E2E=1` to bypass it. CI is the authoritative gate either way.
+
+### Configuration must stay in sync with dependencies
+
+When a change adds a new dev prerequisite, the same change must update `.devcontainer/devcontainer.json` and/or `.devcontainer/post-create.sh` so that a freshly rebuilt container has everything the change needs. Triggers include:
+
+- A new system library (anything installed via `apt-get install`).
+- A new devcontainer feature, or a version bump on an existing feature.
+- A new locally-pinned dotnet tool added to `.config/dotnet-tools.json`.
+- A new Playwright/browser binary requirement.
+- A new port the backend or frontend listens on (`forwardPorts` and `portsAttributes`).
+- A new env var the dev workflow expects to be set (add it to `remoteEnv` or document it in the env-file flow).
+- A new Node engine or pnpm version constraint.
+
+This rule is the same shape as the existing `.gitignore stays current` convention in `CLAUDE.md`: caught at PR review by the architecture-reviewer agent (see its checklist), not by an automated hook. The reviewer flags edits that introduce new prerequisites without a matching `.devcontainer/*` update.
+
+### Pre-push hook must stay enabled
+
+The pre-push gate at `.githooks/pre-push` runs the local test suites whenever a push would update `refs/heads/main`. It is wired up by `scripts/setup-hooks.sh` (which sets `core.hooksPath=.githooks`), and `.devcontainer/post-create.sh` runs that script automatically on container create.
+
+Three things must remain true:
+
+- `.devcontainer/post-create.sh` keeps invoking `./scripts/setup-hooks.sh` on container create. Removing or guarding that line is a regression.
+- `.githooks/pre-push` is not deleted, renamed, or stripped of its current suites (`dotnet test`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `playwright test`). New suites can be added; existing ones can't be silently removed.
+- Contributors do not unset `core.hooksPath` on their local clones to bypass the gate.
+
+`LISTFORGE_SKIP_PREPUSH=1` remains a per-push emergency bypass — for genuine emergencies, not a normalized workflow. `LISTFORGE_SKIP_PREPUSH_E2E=1` is for non-devcontainer environments only; inside the devcontainer Chromium libs are pre-installed by `post-create.sh`, so the E2E step is expected to pass and skipping it should be unnecessary.
+
+### Why required, not just recommended
+
+Past pain points live entirely inside `.devcontainer/` workarounds: the IPv4/IPv6 mismatch the free tier of Supabase forced on us, the rotated Yarn signing key in the base image (`Dockerfile` strips `/etc/apt/sources.list.d/yarn.list`), and the Chromium system-lib set Playwright `--with-deps` doesn't fully install on Debian 12. Outside the devcontainer, none of those workarounds apply, so reproducing CI green on a host install becomes the contributor's problem.
+
+Picking a single canonical environment is the cheapest way to make "works on my machine" mean the same thing for every contributor — and lets the agents and the architecture-reviewer reason about a fixed toolchain instead of a matrix of host configurations.
+
 ## Suggested Initial Build Order
 
 0. Test project scaffolding (`/tests/ListForge.Domain.Tests`, `Application.Tests`, `Infrastructure.Tests`, `API.Tests`) and frontend Vitest + React Testing Library configuration. This precedes real feature code so the TDD hook has somewhere to match against from day 1.
@@ -770,6 +810,7 @@ All backend tests follow AAA structure, with blank lines or `// Arrange` / `// A
 - Test-Driven Development is required from day 1. No production code merges without an accompanying test. The failing test is written first.
 - Test frameworks are locked: xUnit + FluentAssertions + NSubstitute for backend; Vitest + React Testing Library for frontend. Changing these requires a new entry in this log.
 - **2026-04-29:** Playwright is now in v1 scope (was: out of scope, see prior version of §Testing Strategy). Every user-facing feature gets a `tests-e2e/<feature>.spec.ts` alongside Vitest component tests. Triggered by manual verification of the wizard flow becoming the bottleneck and the need for autonomous live verification during agent-driven development. Stack remains Chromium-only for v1; cross-browser revisit when a real cross-browser bug appears.
+- **2026-05-10:** The devcontainer at `.devcontainer/` is the required dev environment. Devcontainer config must be updated in the same change as any new dev dependency (system lib, dotnet tool, port, env var, devcontainer feature). The pre-push hook at `.githooks/pre-push` must stay enabled — `post-create.sh` keeps running `setup-hooks.sh`, contributors don't unset `core.hooksPath`. Non-devcontainer dev is best-effort with CI as the authoritative gate. See §Development Environment.
 
 ### Open decisions intentionally left unresolved
 These should remain open until a real feature implementation requires them:

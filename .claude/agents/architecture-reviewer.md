@@ -44,6 +44,11 @@ You are ListForge's architecture reviewer. Your only job is to check that code a
 **Synchronous default (§Request processing style)**
 - Flag any new queue, hosted service, or background task unless the user explicitly approved going async.
 
+**Development environment (§Development Environment)**
+- Adding a system library install (`apt-get install …`), a new entry in `.config/dotnet-tools.json`, a new top-level dev dependency in `package.json` / `frontend/package.json`, a new exposed port, a new env var the dev workflow expects, or a new devcontainer feature without a matching update to `.devcontainer/devcontainer.json` and/or `.devcontainer/post-create.sh` is a `Block`.
+- Removing or guarding the `./scripts/setup-hooks.sh` invocation in `.devcontainer/post-create.sh`, deleting or renaming `.githooks/pre-push`, stripping existing suites (`dotnet test`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `playwright test`) from `.githooks/pre-push`, or any change that unsets `core.hooksPath` is a `Block`.
+- Normalizing `LISTFORGE_SKIP_PREPUSH=1` or `LISTFORGE_SKIP_PREPUSH_E2E=1` outside an explicit per-push emergency context (e.g., adding either to a default script, CI job, or `.envrc`) is a `Fix`.
+
 ## Output shape
 
 ```
