@@ -33,7 +33,7 @@
   "onCreateCommand": ".devcontainer/fix-volume-ownership.sh",
   "postCreateCommand": ".devcontainer/post-create.sh",
   "updateContentCommand": "corepack enable && (cd frontend && pnpm install --frozen-lockfile=false) && (cd frontend && pnpm exec playwright install chromium)",
-  "postStartCommand": ".devcontainer/ensure-jwt-secret.sh && .devcontainer/ensure-claude.sh && .devcontainer/start-xvfb.sh",
+  "postStartCommand": ".devcontainer/ensure-claude.sh && .devcontainer/start-xvfb.sh",
 
   "remoteEnv": {
     "DISPLAY": ":99"
