@@ -30,6 +30,8 @@ describe('HealthPage', () => {
     expect(screen.getByRole('heading', { name: /system health/i, level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^api$/i, level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^database$/i, level: 2 })).toBeInTheDocument();
+
+    await screen.findByRole('button', { name: /check again/i });
   });
 
   it('shows Connected on both cards when both probes return 200', async () => {
