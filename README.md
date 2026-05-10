@@ -164,7 +164,7 @@ This repo enforces a handful of rules through hooks, agents, and skills. They're
 **PostToolUse hook (warning only):**
 - `check-lint.sh` — runs ESLint, `dotnet format whitespace --verify-no-changes`, and `jq empty` on touched files; warns on stderr without blocking the edit.
 
-**Reviewer agents** (in `.claude/agents/`): `architecture-reviewer`, `etsy-boundary-reviewer`, `tdd-reviewer`, `a11y-reviewer`. Run them before opening a PR.
+**Reviewer agents** (in `.claude/agents/`): `architecture-reviewer`, `tdd-reviewer`, `a11y-reviewer`. Run them before opening a PR.
 
 **Scaffolding skills**: `new-usecase`, `new-aggregate`, `new-endpoint` create the failing test first, then the production stub. `feature-tdd` does the same for new user-facing screens — it scaffolds the Playwright spec + Vitest page test + page stub, then runs both layers until they pass.
 
