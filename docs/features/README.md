@@ -19,4 +19,4 @@ If a feature needs a new cross-cutting rule (e.g., a new color token, a new arch
 
 ## Index
 
-- [`signup.md`](./signup.md) — Account creation flow.
+_None yet — add an entry here when the first feature spec lands._

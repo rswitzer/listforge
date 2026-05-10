@@ -18,13 +18,5 @@ export function render(ui: ReactElement, options: ListForgeRenderOptions = {}) {
   };
 }
 
-export {
-  act,
-  cleanup,
-  fireEvent,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-  within,
-} from '@testing-library/react';
+export { screen, waitFor, within } from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';

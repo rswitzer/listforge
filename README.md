@@ -157,15 +157,10 @@ This repo enforces a handful of rules through hooks, agents, and skills. They're
 **PreToolUse hooks (blocking):**
 - `check-tdd.sh` — denies writes to production `.cs` / `.tsx` / `.ts` files unless a matching test file exists. Red → Green → Refactor is non-negotiable. Exemptions cover `Program.cs`, EF configurations, DTOs in `Contracts`, frontend shells, etc.
 
-**Stop hook (blocking):**
-- `run-affected-tests.sh` — at end-of-turn, runs `pnpm typecheck` + `vitest run --changed` on touched frontend files, `playwright test` if any frontend or `tests-e2e/` file changed, and `dotnet test` on touched backend test projects. Blocks the turn if any gate fails. Set `LISTFORGE_SKIP_STOP_TESTS=1` to bypass for doc-only or planning sessions.
-
 **PostToolUse hook (warning only):**
 - `check-lint.sh` — runs ESLint, `dotnet format whitespace --verify-no-changes`, and `jq empty` on touched files; warns on stderr without blocking the edit.
 
 **Reviewer agents** (in `.claude/agents/`): `architecture-reviewer`, `tdd-reviewer`, `a11y-reviewer`. Run them before opening a PR.
-
-**Scaffolding skills**: `new-usecase`, `new-aggregate`, `new-endpoint` create the failing test first, then the production stub. `feature-tdd` does the same for new user-facing screens — it scaffolds the Playwright spec + Vitest page test + page stub, then runs both layers until they pass.
 
 ### Live verification (Playwright MCP)
 The repo ships an `.mcp.json` registering Microsoft's official Playwright MCP server. On first use, run `claude mcp list` and approve it; subsequent Claude Code sessions can drive a real Chromium browser to navigate routes, click controls, take screenshots, and verify features visually — not just via test runners. Pair it with `pnpm --dir frontend dev` started in the background to iterate on a feature until it actually works on screen.

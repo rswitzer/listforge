@@ -265,15 +265,16 @@ authoritative — don't duplicate it here.
 
 ## Enforcement
 
-Two hooks make this real, not aspirational:
+Test discipline is enforced at two stages:
 
 - **`.claude/hooks/check-tdd.sh`** (PreToolUse, blocking) — refuses writes to
   production files without a matching test on disk. Pages under
   `frontend/src/pages/` require **both** a sibling Vitest test **and** a
   matching `tests-e2e/<name>.spec.ts`. Forces the Red step at both layers.
-- **`.claude/hooks/run-affected-tests.sh`** (Stop, blocking) — at end of turn,
-  runs typecheck + Vitest on touched frontend files, Playwright when frontend
-  or `tests-e2e/` was touched, and `dotnet test` on touched backend test
-  projects. Refuses to let the turn end on red.
+- **`.githooks/pre-push`** (pre-push, blocking) — when the push targets `main`,
+  runs `dotnet test`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, and
+  `playwright test`. The `main-gate.yml` GitHub Actions workflow re-runs the
+  same suites on every PR and push so red code can't reach `main`.
 
-Bypass the Stop hook for doc-only sessions: `LISTFORGE_SKIP_STOP_TESTS=1`.
+Bypass the pre-push gate in emergencies with `LISTFORGE_SKIP_PREPUSH=1`; CI
+still gates.
