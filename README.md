@@ -155,7 +155,6 @@ Open `http://localhost:5173` in a browser.
 This repo enforces a handful of rules through hooks, agents, and skills. They're set up in `.claude/`:
 
 **PreToolUse hooks (blocking):**
-- `check-layer-imports.sh` — denies vendor SDKs in `Domain`/`Application`, generic `IRepository<T>`, MediatR domain events, frontend imports of provider SDKs, or hard-coded third-party URLs in the frontend.
 - `check-tdd.sh` — denies writes to production `.cs` / `.tsx` / `.ts` files unless a matching test file exists. Red → Green → Refactor is non-negotiable. Exemptions cover `Program.cs`, EF configurations, DTOs in `Contracts`, frontend shells, etc.
 
 **Stop hook (blocking):**

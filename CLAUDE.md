@@ -36,7 +36,7 @@ Modular monolith, not microservices. Backend REST API + separate React SPA. The 
 ### Tech stack
 
 - Backend: ASP.NET Core (C#), EF Core (code-first migrations) on Postgres, MediatR for CQRS (added when first use case appears).
-- Database: Postgres. Dev runs in `docker compose` (devcontainer attaches to the same compose network so the IPv4/IPv6 thing the free tier of Supabase forced on us doesn't recur). Production host deferred — Neon free tier is the leading candidate, but no commitment yet.
+- Database: Postgres. Dev runs in `docker compose` (devcontainer attaches to the same compose network). Production host deferred — Neon free tier is the leading candidate, but no commitment yet.
 - Auth: ASP.NET Core Identity stores users in our Postgres; we issue symmetric-key JWTs via `JwtTokenIssuer`. The frontend treats the access/refresh pair as opaque tokens.
 - File storage: `LocalFileStorage` (filesystem) in dev. Cloud object storage via `IFileStorage` is deferred until publish-flow work needs it.
 - AI: Claude (Anthropic) — behind `IImageAnalysisService` / `IListingGenerationService`.
@@ -101,7 +101,7 @@ Every PR is gated on AA conformance across four layers: `eslint-plugin-jsx-a11y`
 **Always invoke the `a11y-reviewer` agent before declaring any frontend feature done.** This is non-negotiable, not "if it looks risky". The automated layers catch ~⅓ of WCAG; the agent reasons about the rest (color-only signaling, focus management, modal contracts, live regions, suppression justifications). Run it on the diff after the feature's tests are green and before reporting completion to the user. Skip only for backend-only or doc-only changes.
 
 ### .gitignore stays current
-When you add a new dependency, tool, or feature that produces artifacts (build outputs, caches, logs, generated dirs) or accepts secrets via files (`.env`, `*.pem`, `credentials.json`, …), update `.gitignore` in the same change. The `.claude/hooks/check-gitignore.sh` PreToolUse hook **blocks** writes to secret-shaped paths and **warns** when a write lands at an artifact-shaped path that isn't already ignored; the matching `.claude/hooks/check-untracked-ignorable.sh` Stop hook re-scans untracked files at end-of-turn. Bypass with `LISTFORGE_SKIP_GITIGNORE_HOOK=1` only for one-off exploration, and verify the working tree afterwards with `git status --ignored`. The CI `secret-scan.yml` (gitleaks) is a post-commit backstop, not a substitute for keeping `.gitignore` correct.
+When you add a new dependency, tool, or feature that produces artifacts (build outputs, caches, logs, generated dirs) or accepts secrets via files (`.env`, `*.pem`, `credentials.json`, …), update `.gitignore` in the same change. The `.claude/hooks/check-gitignore.sh` PreToolUse hook **blocks** writes to secret-shaped paths; the `.claude/hooks/check-untracked-ignorable.sh` Stop hook **warns** at end-of-turn when an untracked file looks like a build artifact / cache that isn't gitignored. Bypass either with `LISTFORGE_SKIP_GITIGNORE_HOOK=1` only for one-off exploration, and verify the working tree afterwards with `git status --ignored`. The CI `secret-scan.yml` (gitleaks) is a post-commit backstop, not a substitute for keeping `.gitignore` correct.
 
 ### Devcontainer config stays in sync with dependencies
 The devcontainer at `.devcontainer/` is the **required** dev environment — not just the canonical one. When a change introduces a new dev prerequisite — a system library (`apt-get install …`), a devcontainer feature or feature version bump, a locally-pinned dotnet tool in `.config/dotnet-tools.json`, a new exposed port, a new `remoteEnv` entry, a new browser binary, or a new Node/pnpm version constraint — update `.devcontainer/devcontainer.json` and/or `.devcontainer/post-create.sh` in the **same change**, so a freshly rebuilt container has everything that change needs. Same shape as the `.gitignore stays current` rule above; caught at PR review by the `architecture-reviewer` agent, not by a hook.
@@ -143,7 +143,7 @@ The devcontainer at `.devcontainer/` is the **required** dev environment — see
 - `pnpm build` — production build to `frontend/dist/`.
 
 ### Hooks
-The PreToolUse hooks at `.claude/hooks/check-layer-imports.sh` and `.claude/hooks/check-tdd.sh` fire automatically on Write/Edit. They block edits that violate architectural boundaries or skip the Red test.
+The PreToolUse hook at `.claude/hooks/check-tdd.sh` fires automatically on Write/Edit and blocks edits that skip the Red test.
 
 The PostToolUse hook at `.claude/hooks/check-lint.sh` runs after each Write/Edit and warns (non-blocking, stderr) on lint findings: ESLint for `frontend/**/*.{ts,tsx,js,jsx}`, `dotnet format whitespace --verify-no-changes` for `.cs` files under `src/` and `tests/`, and `jq empty` for `.json` files. Set `LISTFORGE_SKIP_LINT_HOOK=1` to bypass; the hook also fails open if the relevant toolchain isn't on PATH.
 
