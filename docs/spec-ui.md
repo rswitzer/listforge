@@ -611,7 +611,7 @@ ListForge conforms to **WCAG 2.1 Level AA**. This is normative, not aspirational
 | Lint | `eslint-plugin-jsx-a11y` (recommended preset, `error` severity) | `frontend/eslint.config.js`, runs in `pnpm lint`, gated in pre-push and CI |
 | Component test | `vitest-axe` (`expect(await axe(container)).toHaveNoViolations()`) | Required in every component test that renders DOM. Helper at `frontend/src/test/axe.ts` |
 | End-to-end | `@axe-core/playwright` (WCAG 2.1 AA tags) | `tests-e2e/a11y.spec.ts` walks every top-level route. Helper at `tests-e2e/utils/a11y.ts`. Per-feature specs may also call `checkA11y(page)` after meaningful state changes |
-| Review | `.claude/agents/a11y-reviewer` | Run on frontend PRs alongside `ui-copy-linter` |
+| Review | `.claude/agents/a11y-reviewer` | Run on frontend PRs |
 | Manual | PR template self-check | `.github/PULL_REQUEST_TEMPLATE.md` |
 
 ### Normative rules
@@ -698,8 +698,8 @@ Vitest + React Testing Library + `@testing-library/user-event`. Tests are co-loc
 - Internal component state, implementation details, or snapshot-only output.
 - Third-party library internals.
 
-### Copy assertions stay aligned with the linter
-Any assertion on user-facing text must use the canonical ListForge vocabulary. "Guardrail" / "Guardrail Profiles" / "Generate Listing" / "Inference Results" and similar technical terms should never appear in a test-expected string — those would be false positives that lock in banned copy. See `§UX Copy Style` and the `ui-copy-linter` agent.
+### Copy assertions stay aligned with canonical vocabulary
+Any assertion on user-facing text must use the canonical ListForge vocabulary. "Guardrail" / "Guardrail Profiles" / "Generate Listing" / "Inference Results" and similar technical terms should never appear in a test-expected string — those would be false positives that lock in banned copy. See `§UX Copy Style`.
 
 ### Uncertainty and AI disclosure
 When a field is low-confidence:

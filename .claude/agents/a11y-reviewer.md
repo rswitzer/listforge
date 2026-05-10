@@ -1,6 +1,6 @@
 ---
 name: a11y-reviewer
-description: Reviews frontend changes for WCAG 2.1 AA conformance — landmarks, labels, focus management, contrast, keyboard reachability, and palette compliance against the rules in docs/spec-ui.md §Accessibility. Use on any frontend PR alongside ui-copy-linter; especially important when changes add modals, forms, custom interactive elements, or new colour tokens.
+description: Reviews frontend changes for WCAG 2.1 AA conformance — landmarks, labels, focus management, contrast, keyboard reachability, and palette compliance against the rules in docs/spec-ui.md §Accessibility. Use on any frontend PR; especially important when changes add modals, forms, custom interactive elements, or new colour tokens.
 tools: Read, Grep, Glob, Bash
 ---
 

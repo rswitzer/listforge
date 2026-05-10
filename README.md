@@ -162,9 +162,9 @@ This repo enforces a handful of rules through hooks, agents, and skills. They're
 - `run-affected-tests.sh` — at end-of-turn, runs `pnpm typecheck` + `vitest run --changed` on touched frontend files, `playwright test` if any frontend or `tests-e2e/` file changed, and `dotnet test` on touched backend test projects. Blocks the turn if any gate fails. Set `LISTFORGE_SKIP_STOP_TESTS=1` to bypass for doc-only or planning sessions.
 
 **PostToolUse hook (warning only):**
-- `check-ui-copy.sh` — flags banned UI strings ("Guardrail Profiles", "Generate Listing", exposed confidence scores, etc.).
+- `check-lint.sh` — runs ESLint, `dotnet format whitespace --verify-no-changes`, and `jq empty` on touched files; warns on stderr without blocking the edit.
 
-**Reviewer agents** (in `.claude/agents/`): `architecture-reviewer`, `claude-api-reviewer`, `etsy-boundary-reviewer`, `shop-rules-domain-check`, `tdd-reviewer`, `ui-copy-linter`. Run them before opening a PR.
+**Reviewer agents** (in `.claude/agents/`): `architecture-reviewer`, `etsy-boundary-reviewer`, `tdd-reviewer`, `a11y-reviewer`. Run them before opening a PR.
 
 **Scaffolding skills**: `new-usecase`, `new-aggregate`, `new-endpoint` create the failing test first, then the production stub. `feature-tdd` does the same for new user-facing screens — it scaffolds the Playwright spec + Vitest page test + page stub, then runs both layers until they pass.
 

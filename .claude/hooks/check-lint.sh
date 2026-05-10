@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook: lints the just-written/edited file by extension.
 # Warn-only — exit 0 always, findings go to stderr prefixed with "[lint] …".
-# Mirrors check-ui-copy.sh in style; never blocks the edit.
+# Never blocks the edit.
 #
 # Coverage:
 #   frontend/**/*.{ts,tsx,js,jsx}  → ESLint (via pnpm exec)
