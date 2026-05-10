@@ -767,7 +767,7 @@ Three things must remain true:
 
 ### Why required, not just recommended
 
-Past pain points live entirely inside `.devcontainer/` workarounds: the IPv4/IPv6 mismatch the free tier of Supabase forced on us, the rotated Yarn signing key in the base image (`Dockerfile` strips `/etc/apt/sources.list.d/yarn.list`), and the Chromium system-lib set Playwright `--with-deps` doesn't fully install on Debian 12. Outside the devcontainer, none of those workarounds apply, so reproducing CI green on a host install becomes the contributor's problem.
+Past pain points live entirely inside `.devcontainer/` workarounds: the rotated Yarn signing key in the base image (`Dockerfile` strips `/etc/apt/sources.list.d/yarn.list`), and the Chromium system-lib set Playwright `--with-deps` doesn't fully install on Debian 12. Outside the devcontainer, none of those workarounds apply, so reproducing CI green on a host install becomes the contributor's problem.
 
 Picking a single canonical environment is the cheapest way to make "works on my machine" mean the same thing for every contributor — and lets the agents and the architecture-reviewer reason about a fixed toolchain instead of a matrix of host configurations.
 

@@ -40,7 +40,7 @@ You are ListForge's TDD reviewer. Your job is to keep the Red → Green → Refa
 - *Frontend component tests* must assert observable behavior (user events, rendered text, role-based queries), not implementation details (class names, internal state).
 
 **Vendor-SDK mocking (`Block`)**
-- `Substitute.For<Anthropic.*>()` or any SDK type from `Anthropic`, `Etsy`, `Supabase`, or `Microsoft.EntityFrameworkCore` appearing inside `tests/`. Tests must mock our domain interfaces (`IImageAnalysisService`, `IEtsyListingService`, `IListingDraftRepository`, etc.), never the vendor SDK directly — this keeps the vendor abstraction from decaying (docs/architecture.md §AI Integration Guidance, §Etsy Integration Guidance).
+- `Substitute.For<Anthropic.*>()` or any SDK type from `Anthropic`, `Etsy`, or `Microsoft.EntityFrameworkCore` appearing inside `tests/`. Tests must mock our domain interfaces (`IImageAnalysisService`, `IEtsyListingService`, `IListingDraftRepository`, etc.), never the vendor SDK directly — this keeps the vendor abstraction from decaying (docs/architecture.md §AI Integration Guidance, §Etsy Integration Guidance).
 
 **Repository testing pattern (`Fix`)**
 - Repository tests live under `tests/ListForge.Infrastructure.Tests/` and use Testcontainers-backed Postgres (docs/architecture.md §Testing Strategy). Flag any repository test that uses an in-memory EF Core provider or SQLite substitute — those don't catch real migration/query issues.

@@ -15,8 +15,8 @@ You are ListForge's architecture reviewer. Your only job is to check that code a
 ## Checklist
 
 **Layer boundaries (docs/architecture.md §Solution Structure, §Dependency Injection Guidance)**
-- No `using Supabase|Anthropic|Etsy|Microsoft.EntityFrameworkCore` in `ListForge.Domain` or `ListForge.Application`.
-- No Supabase/Anthropic/Etsy client types in controller or handler signatures.
+- No `using Anthropic|Etsy|Microsoft.EntityFrameworkCore` in `ListForge.Domain` or `ListForge.Application`.
+- No Anthropic/Etsy client types in controller or handler signatures.
 - No raw provider payloads crossing into Domain state — must be normalized into application DTOs first.
 
 **Repositories (§Repository Pattern Guidance)**
