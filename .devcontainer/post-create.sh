@@ -57,4 +57,7 @@ sudo apt-get install -y --no-install-recommends \
 echo "==> Installing Playwright Chromium binary"
 (cd frontend && pnpm exec playwright install chromium)
 
+echo "==> Activating pre-push gate (core.hooksPath -> .githooks)"
+./scripts/setup-hooks.sh
+
 echo "==> Done. Try: dotnet test ListForge.sln"
